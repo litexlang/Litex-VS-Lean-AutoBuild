@@ -1,0 +1,12 @@
+agent_benchmark/
+backups/
+__pycache__/
+Plans/
+迁移/
+
+# 忽略LitexGeo和LeanGeo的内容，但保留目录本身
+LitexGeo/*
+!LitexGeo/.gitkeep
+
+LeanGeo/*
+!LeanGeo/.gitkeep

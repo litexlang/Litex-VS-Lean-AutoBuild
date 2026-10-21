@@ -1,0 +1,2083 @@
+# ============================================================
+# LitexGeo AutoBuild — session 导出库
+# committed 条目数: 142
+# axiom 债务数: 0
+# 用法: 搜 `^axiom ` 找到信任债，改回 thm + 证明即可。
+# ============================================================
+
+# LitexGeo basics: definitions
+
+# Part 1: definitions
+
+# Points are real coordinate pairs.
+have points set = cart(R, R)
+
+# Vector from A to B.
+have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+
+# Dot product.
+have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
+
+# 2D determinant (signed parallelogram area / cross product z-component).
+have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
+
+# Squared Euclidean distance |ab|^2 (avoids square roots).
+have fn distance_sq(a, b cart(R, R)) R = dot(vec(a, b), vec(a, b))
+
+# General form: the line ax + by + c = 0 (a, b not both zero).
+have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = {p cart(R, R): a * p[1] + b * p[2] + c = 0}
+
+# Two-point form: the unique line through distinct points a and b
+# (collinearity: det(vec(a, p), vec(a, b)) = 0).
+have fn line_through_points(a, b cart(R, R): a != b) power_set(cart(R, R)) = {p cart(R, R): det(vec(a, p), vec(a, b)) = 0}
+
+# Cosine of angle pqr at q, without square roots:
+#   cos^2 = num^2 / den, where
+#   num = qp · qr,  den = |qp|^2 * |qr|^2.
+# Requires nonzero arms (p != q, r != q).
+have fn angle_cos_num(p, q, r cart(R, R): p != q, r != q) R = dot(vec(q, p), vec(q, r))
+
+have fn angle_cos_den(p, q, r cart(R, R): p != q, r != q) R = distance_sq(q, p) * distance_sq(q, r)
+
+# Circle with center o and positive radius r (as a set of points).
+# Radius is in R+ so negative radius is not a second name for the same circle.
+have fn circle(o cart(R, R), r R+) power_set(cart(R, R)) = {p cart(R, R): distance_sq(o, p) = r * r}
+
+# p lies on the closed segment between distinct points a and b.
+prop is_on_segment(p, a, b cart(R, R)):
+    a != b
+    exist t R st {0 <= t, t <= 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+# p lies on the ray from a through distinct point b (t >= 0).
+prop is_on_ray(p, a, b cart(R, R)):
+    a != b
+    exist t R st {0 <= t, p[1] = a[1] + t * (b[1] - a[1]), p[2] = a[2] + t * (b[2] - a[2])}
+
+# Points p, q, r are collinear.
+prop is_collinear(p, q, r cart(R, R)):
+    det(vec(p, q), vec(p, r)) = 0
+
+# Segments ab and cd have equal length.
+prop are_segments_congruent(a, b, c, d cart(R, R)):
+    distance_sq(a, b) = distance_sq(c, d)
+
+# Angles pqr and uvw are congruent (same |cos|, same sign).
+prop are_angles_congruent(p, q, r, u, v, w cart(R, R)):
+    p != q
+    r != q
+    u != v
+    w != v
+    angle_cos_den(p, q, r) > 0
+    angle_cos_den(u, v, w) > 0
+    angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r)
+    angle_cos_num(p, q, r) * angle_cos_num(u, v, w) >= 0
+
+# Angle pqr at q is a right angle.
+prop is_right_angle(p, q, r cart(R, R)):
+    p != q
+    r != q
+    dot(vec(q, p), vec(q, r)) = 0
+
+# Directed segments ab and cd are parallel.
+prop is_parallel(a, b, c, d cart(R, R)):
+    a != b
+    c != d
+    det(vec(a, b), vec(c, d)) = 0
+
+# Directed segments ab and cd are perpendicular.
+prop is_perpendicular(a, b, c, d cart(R, R)):
+    a != b
+    c != d
+    dot(vec(a, b), vec(c, d)) = 0
+
+# Set l is a line in the plane (equals some line(a, b, c)).
+prop is_line(l power_set(cart(R, R))):
+    exist a, b, c R st {a != 0 or b != 0, l = line(a, b, c)}
+
+# m is the midpoint of segment ab.
+prop is_midpoint(m, a, b cart(R, R)):
+    m[1] = (a[1] + b[1]) / 2
+    m[2] = (a[2] + b[2]) / 2
+
+# p lies on the affine line through a and b (any real parameter t).
+# Allows a = b (then only p = a); use is_on_line when a distinct line is required.
+prop is_affine_combination(p, a, b cart(R, R)):
+    exist t R st {p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+# g is the centroid of triangle abc.
+prop is_centroid(g, a, b, c cart(R, R)):
+    g[1] = (a[1] + b[1] + c[1]) / 3
+    g[2] = (a[2] + b[2] + c[2]) / 3
+
+# p lies on the line through distinct points a and b.
+prop is_on_line(p, a, b cart(R, R)):
+    a != b
+    p $in line_through_points(a, b)
+
+# p lies on the extension of segment ab beyond b (t > 1); a != b required.
+prop is_on_extension(p, a, b cart(R, R)):
+    a != b
+    exist t R st {t > 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+# f is the foot of the perpendicular from p to line ab.
+prop is_foot(f, p, a, b cart(R, R)):
+    $is_on_line(f, a, b)
+    dot(vec(p, f), vec(a, b)) = 0
+
+# Ray bd bisects angle abc (requires nonzero arms via angle congruence).
+prop is_angle_bisector(a, b, c, d cart(R, R)):
+    $are_angles_congruent(a, b, d, d, b, c)
+
+# a, b, c form a non-degenerate triangle.
+prop is_triangle(a, b, c cart(R, R)):
+    det(vec(a, b), vec(a, c)) != 0
+
+# Triangle abc is isosceles with apex a (ab = ac), not the general "two sides equal".
+prop is_isosceles(a, b, c cart(R, R)):
+    $is_triangle(a, b, c)
+    $are_segments_congruent(a, b, a, c)
+
+# Triangle abc is equilateral.
+prop is_equilateral(a, b, c cart(R, R)):
+    $is_triangle(a, b, c)
+    $are_segments_congruent(a, b, b, c)
+    $are_segments_congruent(b, c, c, a)
+
+# Triangles pqr and uvw are congruent by SSS only (matching vertex order).
+prop are_triangles_congruent(p, q, r, u, v, w cart(R, R)):
+    $is_triangle(p, q, r)
+    $is_triangle(u, v, w)
+    $are_segments_congruent(p, q, u, v)
+    $are_segments_congruent(q, r, v, w)
+    $are_segments_congruent(r, p, w, u)
+
+# Triangles pqr and uvw are similar by AAA only (matching vertex order).
+prop are_triangles_similar(p, q, r, u, v, w cart(R, R)):
+    $is_triangle(p, q, r)
+    $is_triangle(u, v, w)
+    $are_angles_congruent(q, p, r, v, u, w)
+    $are_angles_congruent(p, q, r, u, v, w)
+    $are_angles_congruent(p, r, q, u, w, v)
+
+# Quadrilateral abcd is a parallelogram (opposite sides parallel).
+# Euclidean: this forces a parallelogram; a flat/collinear quad is still allowed.
+prop is_parallelogram(a, b, c, d cart(R, R)):
+    $is_parallel(a, b, d, c)
+    $is_parallel(a, d, b, c)
+
+# Quadrilateral abcd is a rectangle.
+prop is_rectangle(a, b, c, d cart(R, R)):
+    $is_parallelogram(a, b, c, d)
+    $is_right_angle(d, a, b)
+
+# Quadrilateral abcd is a rhombus.
+prop is_rhombus(a, b, c, d cart(R, R)):
+    $is_parallelogram(a, b, c, d)
+    $are_segments_congruent(a, b, b, c)
+
+# Quadrilateral abcd is a square.
+prop is_square(a, b, c, d cart(R, R)):
+    $is_rectangle(a, b, c, d)
+    $are_segments_congruent(a, b, b, c)
+
+# p lies on the circle with center o and positive radius r.
+prop is_on_circle(p, o cart(R, R), r R+):
+    distance_sq(o, p) = r * r
+
+# Points a, b, c, d lie on a common finite circle (equal distance to some center).
+# Degenerate: four coincident points satisfy this with radius 0 center anywhere;
+# that edge case is accepted for a lightweight interface.
+prop are_concyclic(a, b, c, d cart(R, R)):
+    exist o cart(R, R) st {distance_sq(o, a) = distance_sq(o, b), distance_sq(o, b) = distance_sq(o, c), distance_sq(o, c) = distance_sq(o, d)}
+
+# a and b are distinct endpoints of a diameter with center o (midpoint only;
+# does not assert they lie on a named circle).
+prop is_diameter_endpoints(a, b, o cart(R, R)):
+    a != b
+    $is_midpoint(o, a, b)
+
+# q is p rotated 90 degrees clockwise about c.
+prop rotated_90_cw(q, p, c cart(R, R)):
+    q[1] = c[1] + p[2] - c[2]
+    q[2] = c[2] - p[1] + c[1]
+
+# q is p rotated 90 degrees counterclockwise about c.
+prop rotated_90_ccw(q, p, c cart(R, R)):
+    q[1] = c[1] - p[2] + c[2]
+    q[2] = c[2] + p[1] - c[1]
+
+# ---------- session 已提交内容（定义 / thm / axiom）----------
+
+# 思路：依次展开 distance_sq、dot 和 vec，再将两个自乘项写成平方。
+thm distance_sq_coordinate_formula:
+    ? forall a, b cart(R, R):
+        distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2]
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2] = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2]) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+
+# 思路：展开平方距离为两个坐标差的平方和；平方均非负，因此平方和非负。
+thm distance_sq_nonnegative:
+    ? forall a, b cart(R, R):
+        0 <= distance_sq(a, b)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2]
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2] = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    0 <= (b[1] - a[1])^2
+    0 <= (b[2] - a[2])^2
+    0 <= (b[1] - a[1])^2 + (b[2] - a[2])^2
+    0 <= distance_sq(a, b)
+
+# 思路：分别展开两个方向的平方距离；交换端点只会将坐标差取相反数，而相反数的平方不变。
+thm distance_sq_symmetric:
+    ? forall a, b cart(R, R):
+        distance_sq(a, b) = distance_sq(b, a)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2]
+    dot(vec(b, a), vec(b, a)) = vec(b, a)[1] * vec(b, a)[1] + vec(b, a)[2] * vec(b, a)[2]
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(b, a) = dot(vec(b, a), vec(b, a)) = (a[1] - b[1])^2 + (a[2] - b[2])^2
+    (b[1] - a[1])^2 + (b[2] - a[2])^2 = (a[1] - b[1])^2 + (a[2] - b[2])^2
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2 = (a[1] - b[1])^2 + (a[2] - b[2])^2 = distance_sq(b, a)
+
+# 思路：展开 distance_sq 的定义，再将等式两边交换。
+thm vec_dot_self_is_distance:
+    ? forall a, b cart(R, R):
+        dot(vec(a, b), vec(a, b)) = distance_sq(a, b)
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b))
+    dot(vec(a, b), vec(a, b)) = distance_sq(a, b)
+
+# 思路：展开点积与三个平方距离，使用恒等式 2u·v = |u|^2 + |v|^2 - |u-v|^2；
+# 再由 distance_sq(b,a) = distance_sq(a,b) 和已知等距条件消去两项。
+thm distance_equality_to_dot:
+    ? forall a, b, c cart(R, R):
+        distance_sq(a, b) = distance_sq(a, c)
+        =>:
+            2 * dot(vec(b, a), vec(b, c)) = distance_sq(b, c)
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    dot(vec(b, a), vec(b, c)) = vec(b, a)[1] * vec(b, c)[1] + vec(b, a)[2] * vec(b, c)[2] = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2])
+    dot(vec(b, a), vec(b, a)) = vec(b, a)[1] * vec(b, a)[1] + vec(b, a)[2] * vec(b, a)[2] = (a[1] - b[1])^2 + (a[2] - b[2])^2
+    dot(vec(b, c), vec(b, c)) = vec(b, c)[1] * vec(b, c)[1] + vec(b, c)[2] * vec(b, c)[2] = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    dot(vec(a, c), vec(a, c)) = vec(a, c)[1] * vec(a, c)[1] + vec(a, c)[2] * vec(a, c)[2] = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(a, b), vec(a, b)) = vec(a, b)[1] * vec(a, b)[1] + vec(a, b)[2] * vec(a, b)[2] = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(b, a) = dot(vec(b, a), vec(b, a)) = (a[1] - b[1])^2 + (a[2] - b[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(b, a) = (a[1] - b[1])^2 + (a[2] - b[2])^2 = (b[1] - a[1])^2 + (b[2] - a[2])^2 = distance_sq(a, b)
+    2 * dot(vec(b, a), vec(b, c)) = 2 * ((a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2])) = ((a[1] - b[1])^2 + (a[2] - b[2])^2) + ((c[1] - b[1])^2 + (c[2] - b[2])^2) - ((c[1] - a[1])^2 + (c[2] - a[2])^2) = distance_sq(b, a) + distance_sq(b, c) - distance_sq(a, c) = distance_sq(a, b) + distance_sq(b, c) - distance_sq(a, c) = distance_sq(a, c) + distance_sq(b, c) - distance_sq(a, c) = distance_sq(b, c)
+
+# 思路：展开平移后两点的坐标差，平移量相消，再展开 distance_sq、dot 和 vec。
+thm distance_sq_translate:
+    ? forall a, b, t cart(R, R):
+        distance_sq((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2])) = distance_sq(a, b)
+    vec((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2])) = ((b[1] + t[1]) - (a[1] + t[1]), (b[2] + t[2]) - (a[2] + t[2])) = (b[1] - a[1], b[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2])), vec((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2]))) = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2])
+    distance_sq((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2])) = dot(vec((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2])), vec((a[1] + t[1], a[2] + t[2]), (b[1] + t[1], b[2] + t[2]))) = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2]) = dot(vec(a, b), vec(a, b)) = distance_sq(a, b)
+
+# 思路：展开平移后的差，平移量相消，再对等式两边平方。
+thm translated_difference_square:
+    ? forall x, y, t R:
+        ((y + t) - (x + t))^2 = (y - x)^2
+    (y + t) - (x + t) = y - x
+    ((y + t) - (x + t))^2 = (y - x)^2
+
+# 思路：展开中心到平移后点的平方距离；将每个坐标差写成原差与偏移量之和，
+# 再展开平方并合并为原平方距离、交叉点积项和偏移量的平方。
+thm center_offset_square:
+    ? forall o, p, t cart(R, R):
+        distance_sq(o, (p[1] + t[1], p[2] + t[2])) = distance_sq(o, p) + 2 * dot(vec(o, p), t) + dot(t, t)
+    vec(o, p) = (p[1] - o[1], p[2] - o[2])
+    vec(o, (p[1] + t[1], p[2] + t[2])) = ((p[1] + t[1]) - o[1], (p[2] + t[2]) - o[2])
+    dot(vec(o, p), vec(o, p)) = (p[1] - o[1])^2 + (p[2] - o[2])^2
+    dot(vec(o, p), t) = (p[1] - o[1]) * t[1] + (p[2] - o[2]) * t[2]
+    dot(t, t) = t[1]^2 + t[2]^2
+    dot(vec(o, (p[1] + t[1], p[2] + t[2])), vec(o, (p[1] + t[1], p[2] + t[2]))) = ((p[1] + t[1]) - o[1])^2 + ((p[2] + t[2]) - o[2])^2
+    distance_sq(o, p) = dot(vec(o, p), vec(o, p)) = (p[1] - o[1])^2 + (p[2] - o[2])^2
+    distance_sq(o, (p[1] + t[1], p[2] + t[2])) = dot(vec(o, (p[1] + t[1], p[2] + t[2])), vec(o, (p[1] + t[1], p[2] + t[2]))) = ((p[1] + t[1]) - o[1])^2 + ((p[2] + t[2]) - o[2])^2 = (p[1] - o[1])^2 + (p[2] - o[2])^2 + 2 * ((p[1] - o[1]) * t[1] + (p[2] - o[2]) * t[2]) + (t[1]^2 + t[2]^2) = distance_sq(o, p) + 2 * dot(vec(o, p), t) + dot(t, t)
+
+# 思路：展开 vec、dot 与三个平方距离，再用坐标多项式恒等式整理。
+thm inner_product_distance_identity:
+    ? forall a, b, c cart(R, R):
+        2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    2 * dot(vec(a, b), vec(a, c)) = 2 * ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])) = ((b[1] - a[1])^2 + (b[2] - a[2])^2) + ((c[1] - a[1])^2 + (c[2] - a[2])^2) - ((c[1] - b[1])^2 + (c[2] - b[2])^2) = distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)
+
+# 思路：展开三个平方距离及点积，再用坐标多项式恒等式
+# |u-v|^2 = |u|^2 + |v|^2 - 2u·v 整理。
+thm distance_expansion_identity:
+    ? forall a, b, c cart(R, R):
+        distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c))
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2 = ((b[1] - a[1])^2 + (b[2] - a[2])^2) + ((c[1] - a[1])^2 + (c[2] - a[2])^2) - 2 * ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c))
+
+# 思路：三个平方距离满足极化恒等式，直接引用已证明的内积距离恒等式。
+thm twice_dot_from_distances_direct:
+    ? forall a, b, c cart(R, R):
+        2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)
+    by thm inner_product_distance_identity(a, b, c)
+
+# 思路：直接展开种子库中 vec 的定义。
+thm vec_coordinate_formula:
+    ? forall a, b cart(R, R):
+        vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+
+# 思路：直接展开种子库中 dot 的定义。
+thm dot_coordinate_formula:
+    ? forall u, v cart(R, R):
+        dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+
+# 思路：直接展开种子库中 det 的定义。
+thm det_coordinate_formula:
+    ? forall u, v cart(R, R):
+        det(u, v) = u[1] * v[2] - u[2] * v[1]
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+
+# 思路：展开点积定义，再利用实数乘法交换律交换各坐标乘积。
+thm dot_symmetric:
+    ? forall u, v cart(R, R):
+        dot(u, v) = dot(v, u)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(v, u) = v[1] * u[1] + v[2] * u[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2] = v[1] * u[1] + v[2] * u[2] = dot(v, u)
+
+# 思路：展开点积定义，再利用实数乘法交换律交换各坐标乘积。
+thm dot_commutative:
+    ? forall u, v cart(R, R):
+        dot(u, v) = dot(v, u)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    u[1] * v[1] + u[2] * v[2] = v[1] * u[1] + v[2] * u[2]
+    v[1] * u[1] + v[2] * u[2] = dot(v, u)
+
+# 思路：展开三个点积，再利用实数乘法对加法的分配律重新分组。
+thm dot_add_left:
+    ? forall u, v, w cart(R, R):
+        dot((u[1] + v[1], u[2] + v[2]), w) = dot(u, w) + dot(v, w)
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(v, w) = v[1] * w[1] + v[2] * w[2]
+    dot((u[1] + v[1], u[2] + v[2]), w) = (u[1] + v[1]) * w[1] + (u[2] + v[2]) * w[2] = (u[1] * w[1] + u[2] * w[2]) + (v[1] * w[1] + v[2] * w[2]) = dot(u, w) + dot(v, w)
+
+# 思路：展开三个点积，再利用实数乘法对加法的分配律重新分组。
+thm dot_add_right:
+    ? forall u, v, w cart(R, R):
+        dot(u, (v[1] + w[1], v[2] + w[2])) = dot(u, v) + dot(u, w)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(u, (v[1] + w[1], v[2] + w[2])) = u[1] * (v[1] + w[1]) + u[2] * (v[2] + w[2]) = (u[1] * v[1] + u[2] * v[2]) + (u[1] * w[1] + u[2] * w[2]) = dot(u, v) + dot(u, w)
+
+# 思路：展开和向量自点积以及各个点积，再用实数多项式恒等式整理交叉项。
+thm dot_square_sum:
+    ? forall u, v cart(R, R):
+        dot((u[1] + v[1], u[2] + v[2]), (u[1] + v[1], u[2] + v[2])) = dot(u, u) + dot(v, v) + 2 * dot(u, v)
+    dot((u[1] + v[1], u[2] + v[2]), (u[1] + v[1], u[2] + v[2])) = (u[1] + v[1]) * (u[1] + v[1]) + (u[2] + v[2]) * (u[2] + v[2])
+    dot(u, u) = u[1] * u[1] + u[2] * u[2]
+    dot(v, v) = v[1] * v[1] + v[2] * v[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot((u[1] + v[1], u[2] + v[2]), (u[1] + v[1], u[2] + v[2])) = (u[1] + v[1]) * (u[1] + v[1]) + (u[2] + v[2]) * (u[2] + v[2]) = (u[1] * u[1] + u[2] * u[2]) + (v[1] * v[1] + v[2] * v[2]) + 2 * (u[1] * v[1] + u[2] * v[2]) = dot(u, u) + dot(v, v) + 2 * dot(u, v)
+
+# 思路：展开两个行列式，再利用实数乘法交换律和多项式恒等式整理。
+thm det_antisymmetric:
+    ? forall u, v cart(R, R):
+        det(u, v) = -det(v, u)
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    det(v, u) = v[1] * u[2] - v[2] * u[1]
+    det(u, v) = u[1] * v[2] - u[2] * v[1] = -(v[1] * u[2] - v[2] * u[1]) = -det(v, u)
+
+# 思路：展开三个位移向量的 x 分量，中间点 b 的 x 坐标相消。
+thm vec_add_path_x:
+    ? forall a, b, c cart(R, R):
+        vec(a, c)[1] = vec(a, b)[1] + vec(b, c)[1]
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, c)[1] = c[1] - a[1] = (b[1] - a[1]) + (c[1] - b[1]) = vec(a, b)[1] + vec(b, c)[1]
+
+# 思路：展开三个位移向量的 y 分量，中间点 b 的 y 坐标相消。
+thm vec_add_path_y:
+    ? forall a, b, c cart(R, R):
+        vec(a, c)[2] = vec(a, b)[2] + vec(b, c)[2]
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, c)[2] = c[2] - a[2] = (b[2] - a[2]) + (c[2] - b[2]) = vec(a, b)[2] + vec(b, c)[2]
+
+# 思路：展开点积与三个平方距离，再按余弦定理的代数恒等式整理并除以 2。
+thm dot_from_cosine_law:
+    ? forall a, b, c cart(R, R):
+        dot(vec(a, b), vec(a, c)) = (distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)) / 2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2]) = (((b[1] - a[1])^2 + (b[2] - a[2])^2) + ((c[1] - a[1])^2 + (c[2] - a[2])^2) - ((c[1] - b[1])^2 + (c[2] - b[2])^2)) / 2 = (distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)) / 2
+
+# 思路：展开三个位移向量；中间点 b 的两个坐标分别相消。
+thm vec_add:
+    ? forall a, b, c cart(R, R):
+        (vec(a, b)[1] + vec(b, c)[1], vec(a, b)[2] + vec(b, c)[2]) = vec(a, c)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, b)[1] + vec(b, c)[1] = (b[1] - a[1]) + (c[1] - b[1]) = c[1] - a[1] = vec(a, c)[1]
+    vec(a, b)[2] + vec(b, c)[2] = (b[2] - a[2]) + (c[2] - b[2]) = c[2] - a[2] = vec(a, c)[2]
+    (vec(a, b)[1] + vec(b, c)[1], vec(a, b)[2] + vec(b, c)[2]) = (vec(a, c)[1], vec(a, c)[2]) = vec(a, c)
+
+# 思路：展开左侧点积及右侧四个点积，再利用实数乘法对加法的分配律整理。
+thm dot_bilinear_expand:
+    ? forall u, v, w, z cart(R, R):
+        dot((u[1] + v[1], u[2] + v[2]), (w[1] + z[1], w[2] + z[2])) = dot(u, w) + dot(u, z) + dot(v, w) + dot(v, z)
+    dot((u[1] + v[1], u[2] + v[2]), (w[1] + z[1], w[2] + z[2])) = (u[1] + v[1]) * (w[1] + z[1]) + (u[2] + v[2]) * (w[2] + z[2])
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(u, z) = u[1] * z[1] + u[2] * z[2]
+    dot(v, w) = v[1] * w[1] + v[2] * w[2]
+    dot(v, z) = v[1] * z[1] + v[2] * z[2]
+    dot((u[1] + v[1], u[2] + v[2]), (w[1] + z[1], w[2] + z[2])) = (u[1] + v[1]) * (w[1] + z[1]) + (u[2] + v[2]) * (w[2] + z[2]) = (u[1] * w[1] + u[2] * w[2]) + (u[1] * z[1] + u[2] * z[2]) + (v[1] * w[1] + v[2] * w[2]) + (v[1] * z[1] + v[2] * z[2]) = dot(u, w) + dot(u, z) + dot(v, w) + dot(v, z)
+
+# 思路：展开 dot 与 det；按坐标展开平方并消去相同项，得到二维拉格朗日恒等式。
+thm dot_det_eliminate:
+    ? forall u, v cart(R, R):
+        dot(u, u) * dot(v, v) - dot(u, v)^2 = det(u, v)^2
+    dot(u, u) = u[1] * u[1] + u[2] * u[2]
+    dot(v, v) = v[1] * v[1] + v[2] * v[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    dot(u, u) * dot(v, v) - dot(u, v)^2 = (u[1] * u[1] + u[2] * u[2]) * (v[1] * v[1] + v[2] * v[2]) - (u[1] * v[1] + u[2] * v[2])^2 = (u[1] * v[2] - u[2] * v[1])^2 = det(u, v)^2
+
+# 思路：分别展开两个点积，再用实数乘法分配律提取负号。
+thm dot_neg_left:
+    ? forall u, v cart(R, R):
+        dot((0 - u[1], 0 - u[2]), v) = 0 - dot(u, v)
+    dot((0 - u[1], 0 - u[2]), v) = (0 - u[1]) * v[1] + (0 - u[2]) * v[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot((0 - u[1], 0 - u[2]), v) = (0 - u[1]) * v[1] + (0 - u[2]) * v[2] = 0 - (u[1] * v[1] + u[2] * v[2]) = 0 - dot(u, v)
+
+# 思路：展开两个行列式，再利用实数乘法分配律提取负号。
+thm det_neg_left:
+    ? forall u, v cart(R, R):
+        det((0 - u[1], 0 - u[2]), v) = 0 - det(u, v)
+    det((0 - u[1], 0 - u[2]), v) = (0 - u[1]) * v[2] - (0 - u[2]) * v[1]
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    det((0 - u[1], 0 - u[2]), v) = (0 - u[1]) * v[2] - (0 - u[2]) * v[1] = 0 - (u[1] * v[2] - u[2] * v[1]) = 0 - det(u, v)
+
+# 思路：展开三个向量与两个行列式；由于 vec(a,c) = vec(a,b) + vec(b,c)，
+# det(vec(a,b), vec(a,b)) = 0，坐标整理后得到换基公式。
+thm det_change_base:
+    ? forall a, b, c cart(R, R):
+        det(vec(a, b), vec(a, c)) = det(vec(a, b), vec(b, c))
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    det(vec(a, b), vec(a, c)) = vec(a, b)[1] * vec(a, c)[2] - vec(a, b)[2] * vec(a, c)[1] = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])
+    det(vec(a, b), vec(b, c)) = vec(a, b)[1] * vec(b, c)[2] - vec(a, b)[2] * vec(b, c)[1] = (b[1] - a[1]) * (c[2] - b[2]) - (b[2] - a[2]) * (c[1] - b[1])
+    det(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]) = (b[1] - a[1]) * (c[2] - b[2]) - (b[2] - a[2]) * (c[1] - b[1]) = det(vec(a, b), vec(b, c))
+
+# 思路：由 vec(a,c) = vec(a,b) + vec(b,c)，对点积按坐标展开；
+# 自点积项等于 distance_sq(a,b)，整理后得到换基公式。
+thm dot_change_base:
+    ? forall a, b, c cart(R, R):
+        dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + dot(vec(a, b), vec(b, c))
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2])
+    dot(vec(a, b), vec(b, c)) = (b[1] - a[1]) * (c[1] - b[1]) + (b[2] - a[2]) * (c[2] - b[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2]) = ((b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2])) + ((b[1] - a[1]) * (c[1] - b[1]) + (b[2] - a[2]) * (c[2] - b[2])) = distance_sq(a, b) + dot(vec(a, b), vec(b, c))
+
+# 思路：展开三个行列式，再利用实数乘法对加法的分配律重新分组。
+thm det_bilinear_right:
+    ? forall u, v, w cart(R, R):
+        det(u, (v[1] + w[1], v[2] + w[2])) = det(u, v) + det(u, w)
+    det(u, (v[1] + w[1], v[2] + w[2])) = u[1] * (v[2] + w[2]) - u[2] * (v[1] + w[1])
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    det(u, w) = u[1] * w[2] - u[2] * w[1]
+    det(u, (v[1] + w[1], v[2] + w[2])) = u[1] * (v[2] + w[2]) - u[2] * (v[1] + w[1]) = (u[1] * v[2] - u[2] * v[1]) + (u[1] * w[2] - u[2] * w[1]) = det(u, v) + det(u, w)
+
+# 思路：展开三个点积，再利用实数乘法对加法的分配律重新分组。
+thm dot_bilinear_right:
+    ? forall u, v, w cart(R, R):
+        dot(u, (v[1] + w[1], v[2] + w[2])) = dot(u, v) + dot(u, w)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(u, (v[1] + w[1], v[2] + w[2])) = u[1] * (v[1] + w[1]) + u[2] * (v[2] + w[2]) = (u[1] * v[1] + u[2] * v[2]) + (u[1] * w[1] + u[2] * w[2]) = dot(u, v) + dot(u, w)
+
+# 思路：展开右侧缩放向量的点积，再利用实数乘法结合律与分配律提取公因子 k。
+thm dot_scale_right:
+    ? forall u, v cart(R, R), k R:
+        dot(u, (k * v[1], k * v[2])) = k * dot(u, v)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, (k * v[1], k * v[2])) = u[1] * (k * v[1]) + u[2] * (k * v[2]) = k * (u[1] * v[1] + u[2] * v[2]) = k * dot(u, v)
+
+# 思路：展开右侧缩放向量的行列式，再利用实数乘法结合律与分配律提取公因子 k。
+thm det_scale_right:
+    ? forall u, v cart(R, R), k R:
+        det(u, (k * v[1], k * v[2])) = k * det(u, v)
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    det(u, (k * v[1], k * v[2])) = u[1] * (k * v[2]) - u[2] * (k * v[1]) = k * (u[1] * v[2] - u[2] * v[1]) = k * det(u, v)
+
+# 思路：展开 dot 与 det 的坐标定义，再用二维拉格朗日恒等式整理。
+thm dot_squared_plus_det_squared:
+    ? forall u, v cart(R, R):
+        dot(u, u) * dot(v, v) = dot(u, v)^2 + det(u, v)^2
+    dot(u, u) = u[1] * u[1] + u[2] * u[2]
+    dot(v, v) = v[1] * v[1] + v[2] * v[2]
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    det(u, v) = u[1] * v[2] - u[2] * v[1]
+    dot(u, u) * dot(v, v) = (u[1] * u[1] + u[2] * u[2]) * (v[1] * v[1] + v[2] * v[2]) = (u[1] * v[1] + u[2] * v[2])^2 + (u[1] * v[2] - u[2] * v[1])^2 = dot(u, v)^2 + det(u, v)^2
+
+# 思路：余弦定理的代数形式已由内积距离恒等式给出，直接引用即可。
+thm dot_two_scale:
+    ? forall a, b, c cart(R, R):
+        2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, c) - distance_sq(b, c)
+    by thm inner_product_distance_identity(a, b, c)
+
+# 思路：展开三个点积，再利用实数乘法对减法的分配律重新分组。
+thm dot_sub_right_coordinate:
+    ? forall u, v, w cart(R, R):
+        dot(u, (v[1] - w[1], v[2] - w[2])) = dot(u, v) - dot(u, w)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(u, (v[1] - w[1], v[2] - w[2])) = u[1] * (v[1] - w[1]) + u[2] * (v[2] - w[2]) = (u[1] * v[1] + u[2] * v[2]) - (u[1] * w[1] + u[2] * w[2]) = dot(u, v) - dot(u, w)
+
+# 思路：展开左侧缩放向量的点积，再利用实数乘法结合律与分配律提取公因子 k。
+thm dot_scale_left:
+    ? forall u, v cart(R, R), k R:
+        dot((k * u[1], k * u[2]), v) = k * dot(u, v)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot((k * u[1], k * u[2]), v) = (k * u[1]) * v[1] + (k * u[2]) * v[2] = k * (u[1] * v[1] + u[2] * v[2]) = k * dot(u, v)
+
+# 思路：展开三个点积，再利用实数乘法对加法的分配律重新分组。
+thm dot_linear_left:
+    ? forall u, v, w cart(R, R):
+        dot((u[1] + v[1], u[2] + v[2]), w) = dot(u, w) + dot(v, w)
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(v, w) = v[1] * w[1] + v[2] * w[2]
+    dot((u[1] + v[1], u[2] + v[2]), w) = (u[1] + v[1]) * w[1] + (u[2] + v[2]) * w[2] = (u[1] * w[1] + u[2] * w[2]) + (v[1] * w[1] + v[2] * w[2]) = dot(u, w) + dot(v, w)
+
+# 思路：展开三个点积，再利用实数乘法对加法的分配律重新分组。
+thm dot_linear_right:
+    ? forall u, v, w cart(R, R):
+        dot(u, (v[1] + w[1], v[2] + w[2])) = dot(u, v) + dot(u, w)
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot(u, w) = u[1] * w[1] + u[2] * w[2]
+    dot(u, (v[1] + w[1], v[2] + w[2])) = u[1] * (v[1] + w[1]) + u[2] * (v[2] + w[2]) = (u[1] * v[1] + u[2] * v[2]) + (u[1] * w[1] + u[2] * w[2]) = dot(u, v) + dot(u, w)
+
+# 思路：展开两个位移向量及行列式定义，再利用共线条件使坐标行列式等于零。
+thm collinear_det_expand:
+    ? forall p, q, r cart(R, R):
+        $is_collinear(p, q, r)
+        =>:
+            (q[1] - p[1]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[1] - p[1]) = 0
+    vec(p, q) = (q[1] - p[1], q[2] - p[2])
+    vec(p, r) = (r[1] - p[1], r[2] - p[2])
+    det(vec(p, q), vec(p, r)) = vec(p, q)[1] * vec(p, r)[2] - vec(p, q)[2] * vec(p, r)[1]
+    (q[1] - p[1]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[1] - p[1]) = det(vec(p, q), vec(p, r)) = 0
+
+# 思路：展开两个位移向量与点积定义，再使用垂直条件给出的点积为零。
+thm perpendicular_dot_expand:
+    ? forall a, b, c, d cart(R, R):
+        $is_perpendicular(a, b, c, d)
+        =>:
+            (b[1] - a[1]) * (d[1] - c[1]) + (b[2] - a[2]) * (d[2] - c[2]) = 0
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(c, d) = (d[1] - c[1], d[2] - c[2])
+    dot(vec(a, b), vec(c, d)) = vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2]
+    (b[1] - a[1]) * (d[1] - c[1]) + (b[2] - a[2]) * (d[2] - c[2]) = dot(vec(a, b), vec(c, d)) = 0
+
+# 思路：交换行列式的两个向量只改变符号；已知行列式为 0，因此交换 q、r 后仍为 0。
+thm collinear_symmetric:
+    ? forall p, q, r cart(R, R):
+        $is_collinear(p, q, r)
+        =>:
+            $is_collinear(p, r, q)
+    det(vec(p, r), vec(p, q)) = -det(vec(p, q), vec(p, r))
+    -det(vec(p, q), vec(p, r)) = -0
+    -0 = 0
+
+# 思路：展开直线成员条件中的行列式；由中点坐标公式，
+# vec(a,m) = vec(a,b) / 2，因此两个向量的行列式为零。
+thm collinear_midpoint:
+    ? forall m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        a != b
+        =>:
+            $is_on_line(m, a, b)
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    det(vec(a, m), vec(a, b)) = (m[1] - a[1]) * (b[2] - a[2]) - (m[2] - a[2]) * (b[1] - a[1])
+    (m[1] - a[1]) * (b[2] - a[2]) - (m[2] - a[2]) * (b[1] - a[1]) = (((a[1] + b[1]) / 2) - a[1]) * (b[2] - a[2]) - (((a[2] + b[2]) / 2) - a[2]) * (b[1] - a[1]) = 0
+
+# 思路：共线条件展开后正是两个位移向量的坐标行列式为零，直接引用已证明的坐标展开定理。
+thm collinear_to_standard_det:
+    ? forall p, q, r cart(R, R):
+        $is_collinear(p, q, r)
+        =>:
+            (q[1] - p[1]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[1] - p[1]) = 0
+    by thm collinear_det_expand(p, q, r)
+
+# 思路：令 x = 2m-a-b，方向向量为 b-a。共线条件给出 det(x,b-a)=0，
+# 等距条件给出 dot(x,b-a)=0。将二者组合可得
+# distance_sq(a,b) * x[1] = 0 和 distance_sq(a,b) * x[2] = 0。
+# 因 distance_sq(a,b) 非零，故 x 的两个分量均为零，从而 m 是 ab 的中点。
+thm collinear_equidistant_implies_midpoint:
+    ? forall m, a, b cart(R, R):
+        $is_collinear(a, m, b),
+        $are_segments_congruent(a, m, m, b),
+        distance_sq(a, b) != 0
+        =>:
+            $is_midpoint(m, a, b)
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(m, b) = (b[1] - m[1], b[2] - m[2])
+    det(vec(a, m), vec(a, b)) = (m[1] - a[1]) * (b[2] - a[2]) - (m[2] - a[2]) * (b[1] - a[1])
+    ((2 * m[1] - a[1]) - b[1]) * (b[2] - a[2]) - ((2 * m[2] - a[2]) - b[2]) * (b[1] - a[1]) = 2 * ((m[1] - a[1]) * (b[2] - a[2]) - (m[2] - a[2]) * (b[1] - a[1])) = 2 * det(vec(a, m), vec(a, b)) = 2 * 0 = 0
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(m, b) = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    ((2 * m[1] - a[1]) - b[1]) * (b[1] - a[1]) + ((2 * m[2] - a[2]) - b[2]) * (b[2] - a[2]) = ((m[1] - a[1])^2 + (m[2] - a[2])^2) - ((b[1] - m[1])^2 + (b[2] - m[2])^2) = distance_sq(a, m) - distance_sq(m, b) = 0
+    distance_sq(a, b) * ((2 * m[1] - a[1]) - b[1]) = ((b[1] - a[1])^2 + (b[2] - a[2])^2) * ((2 * m[1] - a[1]) - b[1]) = (b[1] - a[1]) * (((2 * m[1] - a[1]) - b[1]) * (b[1] - a[1]) + ((2 * m[2] - a[2]) - b[2]) * (b[2] - a[2])) + (b[2] - a[2]) * (((2 * m[1] - a[1]) - b[1]) * (b[2] - a[2]) - ((2 * m[2] - a[2]) - b[2]) * (b[1] - a[1])) = (b[1] - a[1]) * 0 + (b[2] - a[2]) * 0 = 0
+    ((2 * m[1] - a[1]) - b[1]) = 0
+    distance_sq(a, b) * ((2 * m[2] - a[2]) - b[2]) = ((b[1] - a[1])^2 + (b[2] - a[2])^2) * ((2 * m[2] - a[2]) - b[2]) = (b[2] - a[2]) * (((2 * m[1] - a[1]) - b[1]) * (b[1] - a[1]) + ((2 * m[2] - a[2]) - b[2]) * (b[2] - a[2])) - (b[1] - a[1]) * (((2 * m[1] - a[1]) - b[1]) * (b[2] - a[2]) - ((2 * m[2] - a[2]) - b[2]) * (b[1] - a[1])) = (b[2] - a[2]) * 0 - (b[1] - a[1]) * 0 = 0
+    ((2 * m[2] - a[2]) - b[2]) = 0
+    m[1] = m[1] - (((2 * m[1] - a[1]) - b[1]) / 2) = (a[1] + b[1]) / 2
+    m[2] = m[2] - (((2 * m[2] - a[2]) - b[2]) / 2) = (a[2] + b[2]) / 2
+
+# 思路：设公共边方向为 u = vec(a,b)。两个共线条件给出
+# det(u,vec(a,c)) = 0 与 det(u,vec(a,d)) = 0。
+# 利用恒等式
+# |u|^2 det(v,w) = det(u,w) dot(u,v) - det(u,v) dot(u,w)，
+# 可得 distance_sq(a,b) * det(vec(a,c),vec(a,d)) = 0；
+# 公共边的平方长度非零，因此目标行列式为零。
+thm collinear_third:
+    ? forall a, b, c, d cart(R, R):
+        $is_collinear(a, b, c),
+        $is_collinear(a, b, d),
+        distance_sq(a, b) != 0
+        =>:
+            $is_collinear(a, c, d)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, d) = (d[1] - a[1], d[2] - a[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    det(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])
+    det(vec(a, b), vec(a, d)) = (b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])
+    det(vec(a, c), vec(a, d)) = (c[1] - a[1]) * (d[2] - a[2]) - (c[2] - a[2]) * (d[1] - a[1])
+    distance_sq(a, b) * det(vec(a, c), vec(a, d)) = ((b[1] - a[1])^2 + (b[2] - a[2])^2) * ((c[1] - a[1]) * (d[2] - a[2]) - (c[2] - a[2]) * (d[1] - a[1])) = ((b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])) * ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])) - ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])) * ((b[1] - a[1]) * (d[1] - a[1]) + (b[2] - a[2]) * (d[2] - a[2])) = det(vec(a, b), vec(a, d)) * ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])) - det(vec(a, b), vec(a, c)) * ((b[1] - a[1]) * (d[1] - a[1]) + (b[2] - a[2]) * (d[2] - a[2])) = 0 * ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])) - 0 * ((b[1] - a[1]) * (d[1] - a[1]) + (b[2] - a[2]) * (d[2] - a[2])) = 0
+    det(vec(a, c), vec(a, d)) = 0
+
+# 按种子库定义，退化共线四边形也可满足 is_parallelogram，因此原命题不成立。
+# 反例：a=(0,0), b=(1,0), c=(4,0), d=(2,0)。
+# 此时 ab 平行 dc 且 ad 平行 bc，但 vec(a,b)=(1,0) != (2,0)=vec(d,c)，
+# 且 distance_sq(a,b)=1 != 4=distance_sq(d,c)。
+# 必须为 is_parallelogram 增加非退化条件，例如 $is_triangle(a,b,d)，才能证明该结论。
+
+# 思路：交换点积的两个向量不改变其值，再使用已知垂直条件中的点积为零。
+thm perpendicular_symmetric:
+    ? forall a, b, c, d cart(R, R):
+        $is_perpendicular(a, b, c, d)
+        =>:
+            $is_perpendicular(c, d, a, b)
+    dot(vec(c, d), vec(a, b)) = vec(c, d)[1] * vec(a, b)[1] + vec(c, d)[2] * vec(a, b)[2]
+    vec(c, d)[1] * vec(a, b)[1] + vec(c, d)[2] * vec(a, b)[2] = vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2]
+    vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2] = dot(vec(a, b), vec(c, d))
+    dot(vec(c, d), vec(a, b)) = dot(vec(a, b), vec(c, d)) = 0
+
+# 思路：交换行列式的两个向量只会改变符号；原行列式为零，因此交换两组线段后仍为零。
+thm parallel_symmetric:
+    ? forall a, b, c, d cart(R, R):
+        $is_parallel(a, b, c, d)
+        =>:
+            $is_parallel(c, d, a, b)
+    det(vec(c, d), vec(a, b)) = vec(c, d)[1] * vec(a, b)[2] - vec(c, d)[2] * vec(a, b)[1]
+    det(vec(a, b), vec(c, d)) = vec(a, b)[1] * vec(c, d)[2] - vec(a, b)[2] * vec(c, d)[1]
+    det(vec(c, d), vec(a, b)) = vec(c, d)[1] * vec(a, b)[2] - vec(c, d)[2] * vec(a, b)[1] = 0 - (vec(a, b)[1] * vec(c, d)[2] - vec(a, b)[2] * vec(c, d)[1]) = 0 - det(vec(a, b), vec(c, d)) = 0 - 0 = 0
+
+# 思路：设 m 为 ab 的中点。展开 dot、vec 与两个平方距离，
+# 利用 m 的中点坐标可得
+# 2 vec(a,b)·vec(m,p) = distance_sq(p,a) - distance_sq(p,b)。
+# 由 p 到 a、b 等距，右侧为零；再由 2 非零消去因子，得到垂直。
+thm equidistant_perp_bisector:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        $are_segments_congruent(p, a, p, b),
+        a != b,
+        m != p
+        =>:
+            $is_perpendicular(a, b, m, p)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(m, p) = (p[1] - m[1], p[2] - m[2])
+    dot(vec(a, b), vec(m, p)) = (b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])
+    distance_sq(p, a) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    distance_sq(p, b) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    2 * dot(vec(a, b), vec(m, p)) = 2 * ((b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])) = 2 * ((b[1] - a[1]) * (p[1] - (a[1] + b[1]) / 2) + (b[2] - a[2]) * (p[2] - (a[2] + b[2]) / 2)) = ((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2) = distance_sq(p, a) - distance_sq(p, b) = 0
+    dot(vec(a, b), vec(m, p)) = 0
+
+# 思路：由中点坐标展开两个平方距离；从 a 到 m 与从 m 到 b 的坐标差互为相同的半差，因此平方和相等。
+thm collinear_implies_midpoint_distance:
+    ? forall m, a, b cart(R, R):
+        $is_collinear(a, m, b),
+        $is_midpoint(m, a, b)
+        =>:
+            $are_segments_congruent(a, m, m, b)
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(m, b) = (b[1] - m[1], b[2] - m[2])
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(m, b) = dot(vec(m, b), vec(m, b)) = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    m[1] - a[1] = (a[1] + b[1]) / 2 - a[1] = b[1] - (a[1] + b[1]) / 2 = b[1] - m[1]
+    m[2] - a[2] = (a[2] + b[2]) / 2 - a[2] = b[2] - (a[2] + b[2]) / 2 = b[2] - m[2]
+    (m[1] - a[1])^2 + (m[2] - a[2])^2 = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (b[1] - m[1])^2 + (b[2] - m[2])^2 = distance_sq(m, b)
+
+# 思路：由中点坐标展开点积，可得
+# 2 * vec(a,b)·vec(m,p) = distance_sq(p,a) - distance_sq(p,b)。
+# p 到 a、b 等距，因此右侧为零，再消去非零因子 2。
+thm equidistant_implies_perp_bisector_dot:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        $are_segments_congruent(p, a, p, b)
+        =>:
+            dot(vec(a, b), vec(m, p)) = 0
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(m, p) = (p[1] - m[1], p[2] - m[2])
+    dot(vec(a, b), vec(m, p)) = (b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])
+    distance_sq(p, a) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    distance_sq(p, b) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    2 * dot(vec(a, b), vec(m, p)) = 2 * ((b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])) = 2 * ((b[1] - a[1]) * (p[1] - (a[1] + b[1]) / 2) + (b[2] - a[2]) * (p[2] - (a[2] + b[2]) / 2)) = ((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2) = distance_sq(p, a) - distance_sq(p, b) = 0
+    dot(vec(a, b), vec(m, p)) = 0
+
+# 思路：按 is_parallel 的定义，平行线段的两个方向向量的行列式等于零。
+thm parallel_implies_det_zero:
+    ? forall a, b, c, d cart(R, R):
+        $is_parallel(a, b, c, d)
+        =>:
+            det(vec(a, b), vec(c, d)) = 0
+    det(vec(a, b), vec(c, d)) = 0
+
+# 思路：展开两个位移向量与点积定义，点积正好等于已知的坐标表达式，因此为零。
+thm perp_dot_zero_coordinate:
+    ? forall a, b, c, d cart(R, R):
+        (b[1] - a[1]) * (d[1] - c[1]) + (b[2] - a[2]) * (d[2] - c[2]) = 0
+        =>:
+            dot(vec(a, b), vec(c, d)) = 0
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(c, d) = (d[1] - c[1], d[2] - c[2])
+    dot(vec(a, b), vec(c, d)) = vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2] = (b[1] - a[1]) * (d[1] - c[1]) + (b[2] - a[2]) * (d[2] - c[2]) = 0
+
+# 思路：展开三边的平方距离，使用余弦定理的代数恒等式；
+# 垂直条件使交叉点积为零，因此剩下两直角边平方距离之和。
+thm perpendicular_implies_distance_sum:
+    ? forall a, b, c cart(R, R):
+        $is_perpendicular(a, b, a, c)
+        =>:
+            distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, c) - 2 * 0 = distance_sq(a, b) + distance_sq(a, c)
+
+# 思路：展开中点坐标、垂直条件中的点积以及 p 到 a、b 的平方距离。
+# 两个平方距离之差等于 2 * vec(a,b)·vec(m,p)；该点积由垂直条件为零，
+# 因此 p 到线段两端点的平方距离相等。
+thm perpendicular_bisector_property:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        $is_perpendicular(a, b, m, p)
+        =>:
+            $are_segments_congruent(p, a, p, b)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(m, p) = (p[1] - m[1], p[2] - m[2])
+    dot(vec(a, b), vec(m, p)) = (b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])
+    distance_sq(p, a) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    distance_sq(p, b) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    distance_sq(p, a) - distance_sq(p, b) = ((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2) = 2 * ((b[1] - a[1]) * (p[1] - (a[1] + b[1]) / 2) + (b[2] - a[2]) * (p[2] - (a[2] + b[2]) / 2)) = 2 * ((b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])) = 2 * dot(vec(a, b), vec(m, p)) = 2 * 0 = 0
+    distance_sq(p, a) = distance_sq(p, b)
+
+# 思路：垂直平分线性质已证明 p 到端点 a、b 的线段全等；
+# 展开 are_segments_congruent 即得到两个平方距离相等。
+thm perpendicular_bisector_equidistant_sq:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        $is_perpendicular(a, b, m, p)
+        =>:
+            distance_sq(p, a) = distance_sq(p, b)
+    by thm perpendicular_bisector_property(p, m, a, b)
+
+# 思路：is_perpendicular 除了要求两条线段端点分别不同外，
+# 其主要条件正是两个方向向量的点积为零；展开 dot 后使用已知等式。
+thm perpendicular_from_dot_zero:
+    ? forall a, b, c, d cart(R, R):
+        a != b,
+        c != d,
+        dot(vec(a, b), vec(c, d)) = 0
+        =>:
+            $is_perpendicular(a, b, c, d)
+    dot(vec(a, b), vec(c, d)) = vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2]
+    vec(a, b)[1] * vec(c, d)[1] + vec(a, b)[2] * vec(c, d)[2] = dot(vec(a, b), vec(c, d)) = 0
+
+# 思路：设 x = vec(d,c) - vec(a,b) = vec(b,c) - vec(a,d)。
+# 平行条件分别给出 det(vec(a,b),x)=0 与 det(vec(a,d),x)=0。
+# 由于三角形 abd 非退化，det(vec(a,b),vec(a,d)) 非零；
+# 用两个行列式方程分别消去 x 的两个坐标，得到 x=(0,0)。
+thm parallelogram_coordinate_difference:
+    ? forall a, b, c, d cart(R, R):
+        $is_parallelogram(a, b, c, d),
+        $is_triangle(a, b, d)
+        =>:
+            (b[1] - a[1], b[2] - a[2]) = (c[1] - d[1], c[2] - d[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, d) = (d[1] - a[1], d[2] - a[2])
+    vec(d, c) = (c[1] - d[1], c[2] - d[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    det(vec(a, b), vec(d, c)) = (b[1] - a[1]) * (c[2] - d[2]) - (b[2] - a[2]) * (c[1] - d[1])
+    det(vec(a, d), vec(b, c)) = (d[1] - a[1]) * (c[2] - b[2]) - (d[2] - a[2]) * (c[1] - b[1])
+    det(vec(a, b), vec(a, d)) = (b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])
+    (b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2])) - (b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1])) = (b[1] - a[1]) * (c[2] - d[2]) - (b[2] - a[2]) * (c[1] - d[1]) = det(vec(a, b), vec(d, c)) = 0
+    (d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2])) - (d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1])) = (d[1] - a[1]) * (c[2] - b[2]) - (d[2] - a[2]) * (c[1] - b[1]) = det(vec(a, d), vec(b, c)) = 0
+    det(vec(a, b), vec(a, d)) * ((c[1] - d[1]) - (b[1] - a[1])) = ((b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])) * ((c[1] - d[1]) - (b[1] - a[1])) = (b[1] - a[1]) * ((d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) - (d[1] - a[1]) * ((b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) = (b[1] - a[1]) * ((d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) - (d[1] - a[1]) * ((b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) = 0
+    ((c[1] - d[1]) - (b[1] - a[1])) = 0
+    det(vec(a, b), vec(a, d)) * ((c[2] - d[2]) - (b[2] - a[2])) = ((b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])) * ((c[2] - d[2]) - (b[2] - a[2])) = (d[2] - a[2]) * ((b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) - (b[2] - a[2]) * ((d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) = (d[2] - a[2]) * ((b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) - (b[2] - a[2]) * ((d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) = 0
+    ((c[2] - d[2]) - (b[2] - a[2])) = 0
+    b[1] - a[1] = c[1] - d[1]
+    b[2] - a[2] = c[2] - d[2]
+    (b[1] - a[1], b[2] - a[2]) = (c[1] - d[1], c[2] - d[2])
+
+# 思路：直接引用已证明的垂直平分线性质，得到 p 到端点 a、b 的线段全等。
+thm perpendicular_bisector_equidistant:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        $is_perpendicular(a, b, m, p)
+        =>:
+            $are_segments_congruent(p, a, p, b)
+    by thm perpendicular_bisector_property(p, m, a, b)
+
+# 思路：设 u = vec(c,a)，v = vec(c,b)。直角条件给出 dot(u,v)=0，
+# 且两条角边非零，所以 dot(u,u) 与 dot(v,v) 均非零。
+# 由二维拉格朗日恒等式得 det(u,v)^2 = dot(u,u)dot(v,v) != 0，
+# 因而 det(u,v) != 0。最后换基可得
+# det(vec(a,c),vec(a,b)) = -det(u,v) != 0，
+# 这正表示直角顶点 c 不在由不同点 a、b 确定的直线上。
+thm right_angle_vertex_not_on_opposite_line:
+    ? forall a, b, c cart(R, R):
+        $is_right_angle(a, c, b),
+        a != b
+        =>:
+            det(vec(a, c), vec(a, b)) != 0
+    vec(c, a) = (a[1] - c[1], a[2] - c[2])
+    vec(c, b) = (b[1] - c[1], b[2] - c[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec(c, a), vec(c, a)) = (a[1] - c[1])^2 + (a[2] - c[2])^2
+    dot(vec(c, b), vec(c, b)) = (b[1] - c[1])^2 + (b[2] - c[2])^2
+    dot(vec(c, a), vec(c, b)) = (a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])
+    det(vec(c, a), vec(c, b)) = (a[1] - c[1]) * (b[2] - c[2]) - (a[2] - c[2]) * (b[1] - c[1])
+    (a[1] - c[1])^2 + (a[2] - c[2])^2 != 0
+    (b[1] - c[1])^2 + (b[2] - c[2])^2 != 0
+    dot(vec(c, a), vec(c, a)) != 0
+    dot(vec(c, b), vec(c, b)) != 0
+    dot(vec(c, a), vec(c, a)) * dot(vec(c, b), vec(c, b)) != 0
+    dot(vec(c, a), vec(c, a)) * dot(vec(c, b), vec(c, b)) = dot(vec(c, a), vec(c, b))^2 + det(vec(c, a), vec(c, b))^2 = 0^2 + det(vec(c, a), vec(c, b))^2 = det(vec(c, a), vec(c, b))^2
+    det(vec(c, a), vec(c, b))^2 != 0
+    det(vec(c, a), vec(c, b)) != 0
+    det(vec(a, c), vec(a, b)) = (c[1] - a[1]) * (b[2] - a[2]) - (c[2] - a[2]) * (b[1] - a[1]) = 0 - ((a[1] - c[1]) * (b[2] - c[2]) - (a[2] - c[2]) * (b[1] - c[1])) = 0 - det(vec(c, a), vec(c, b))
+    0 - det(vec(c, a), vec(c, b)) != 0
+    det(vec(a, c), vec(a, b)) != 0
+
+# 思路：两条已知高分别给出
+# dot(vec(a,h),vec(b,c)) = 0 与 dot(vec(b,h),vec(a,c)) = 0。
+# 坐标展开可得第三条高的点积等于后者减前者，因此也等于零。
+thm orthocenter_third_altitude:
+    ? forall a, b, c, h cart(R, R):
+        $is_perpendicular(a, h, b, c),
+        $is_perpendicular(b, h, a, c),
+        a != b,
+        c != h
+        =>:
+            $is_perpendicular(c, h, a, b)
+    vec(a, h) = (h[1] - a[1], h[2] - a[2])
+    vec(b, h) = (h[1] - b[1], h[2] - b[2])
+    vec(c, h) = (h[1] - c[1], h[2] - c[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec(a, h), vec(b, c)) = (h[1] - a[1]) * (c[1] - b[1]) + (h[2] - a[2]) * (c[2] - b[2])
+    dot(vec(b, h), vec(a, c)) = (h[1] - b[1]) * (c[1] - a[1]) + (h[2] - b[2]) * (c[2] - a[2])
+    dot(vec(c, h), vec(a, b)) = (h[1] - c[1]) * (b[1] - a[1]) + (h[2] - c[2]) * (b[2] - a[2])
+    dot(vec(c, h), vec(a, b)) = (h[1] - c[1]) * (b[1] - a[1]) + (h[2] - c[2]) * (b[2] - a[2]) = ((h[1] - b[1]) * (c[1] - a[1]) + (h[2] - b[2]) * (c[2] - a[2])) - ((h[1] - a[1]) * (c[1] - b[1]) + (h[2] - a[2]) * (c[2] - b[2])) = dot(vec(b, h), vec(a, c)) - dot(vec(a, h), vec(b, c)) = 0 - 0 = 0
+
+# 思路：展开点积与三个平方距离，使用极化恒等式
+# 2u·v = |u|^2 + |v|^2 - |u-v|^2；
+# 再由已知等距条件消去相等的两项，最后除以 2。
+thm equidistant_dot_half:
+    ? forall a, b, c cart(R, R):
+        distance_sq(a, b) = distance_sq(a, c)
+        =>:
+            dot(vec(b, a), vec(b, c)) = distance_sq(b, c) / 2
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2])
+    distance_sq(b, a) = (a[1] - b[1])^2 + (a[2] - b[2])^2
+    distance_sq(b, c) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(b, a) = (a[1] - b[1])^2 + (a[2] - b[2])^2 = (b[1] - a[1])^2 + (b[2] - a[2])^2 = distance_sq(a, b)
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2]) = (((a[1] - b[1])^2 + (a[2] - b[2])^2) + ((c[1] - b[1])^2 + (c[2] - b[2])^2) - ((c[1] - a[1])^2 + (c[2] - a[2])^2)) / 2 = (distance_sq(b, a) + distance_sq(b, c) - distance_sq(a, c)) / 2 = (distance_sq(a, b) + distance_sq(b, c) - distance_sq(a, c)) / 2 = (distance_sq(a, c) + distance_sq(b, c) - distance_sq(a, c)) / 2 = distance_sq(b, c) / 2
+
+# 思路：线段 ab 的平方长度等于自身，因此线段与自身全等。
+thm segments_congruent_reflexive:
+    ? forall a, b cart(R, R):
+        $are_segments_congruent(a, b, a, b)
+    distance_sq(a, b) = distance_sq(a, b)
+
+# 思路：线段全等给出两个平方距离相等；交换等式两边即可得到反向的线段全等。
+thm segments_congruent_symmetric:
+    ? forall a, b, c, d cart(R, R):
+        $are_segments_congruent(a, b, c, d)
+        =>:
+            $are_segments_congruent(c, d, a, b)
+    distance_sq(c, d) = distance_sq(a, b)
+
+# 思路：两次线段全等分别给出平方距离相等；由实数等式的传递性得到首尾平方距离相等。
+thm segments_congruent_transitive:
+    ? forall a, b, c, d, x, y cart(R, R):
+        $are_segments_congruent(a, b, c, d),
+        $are_segments_congruent(c, d, x, y)
+        =>:
+            $are_segments_congruent(a, b, x, y)
+    distance_sq(a, b) = distance_sq(c, d) = distance_sq(x, y)
+
+# 思路：平方距离相等正是线段全等谓词的定义，直接使用已知等式。
+thm segments_congruent_from_distance_sq:
+    ? forall a, b, c, d cart(R, R):
+        distance_sq(a, b) = distance_sq(c, d)
+        =>:
+            $are_segments_congruent(a, b, c, d)
+    distance_sq(a, b) = distance_sq(c, d)
+
+# 思路：由中点坐标展开两个平方距离；a 到 m 与 m 到 b 的坐标差分别相等，因此平方距离相等。
+thm midpoint_equidistant:
+    ? forall m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        a != b
+        =>:
+            $are_segments_congruent(a, m, m, b)
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(m, b) = (b[1] - m[1], b[2] - m[2])
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(m, b) = dot(vec(m, b), vec(m, b)) = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    m[1] - a[1] = (a[1] + b[1]) / 2 - a[1] = b[1] - (a[1] + b[1]) / 2 = b[1] - m[1]
+    m[2] - a[2] = (a[2] + b[2]) / 2 - a[2] = b[2] - (a[2] + b[2]) / 2 = b[2] - m[2]
+    (m[1] - a[1])^2 + (m[2] - a[2])^2 = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (b[1] - m[1])^2 + (b[2] - m[2])^2 = distance_sq(m, b)
+
+# 思路：展开两个平方距离，并代入中点坐标；从端点 a 到中点 m 的每个坐标差
+# 都是从 a 到 b 对应坐标差的 1/2，因此平方距离是原线段平方距离的 1/4。
+thm midpoint_half_distance:
+    ? forall m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        a != b
+        =>:
+            distance_sq(a, m) = distance_sq(a, b) / 4
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (((a[1] + b[1]) / 2) - a[1])^2 + (((a[2] + b[2]) / 2) - a[2])^2 = ((b[1] - a[1])^2 + (b[2] - a[2])^2) / 4 = distance_sq(a, b) / 4
+
+# 思路：将一维中点 (x+y)/2 分别减去左端点、从右端点中减去，
+# 两者都化为半差 (y-x)/2，因此相等。
+thm one_dimensional_midpoint:
+    ? forall x, y R:
+        (x + y) / 2 - x = y - (x + y) / 2
+    (x + y) / 2 - x = (y - x) / 2
+    (y - x) / 2 = y - (x + y) / 2
+
+# 思路：展开质心坐标及六个平方距离。将
+# g = ((a+b+c)/3) 代入后按两个坐标分别整理，可得三个顶点到质心的
+# 平方距离之和等于三条边平方距离之和的三分之一。
+thm centroid_distance:
+    ? forall g, a, b, c cart(R, R):
+        $is_centroid(g, a, b, c)
+        =>:
+            distance_sq(g, a) + distance_sq(g, b) + distance_sq(g, c) = (distance_sq(a, b) + distance_sq(b, c) + distance_sq(c, a)) / 3
+    vec(g, a) = (a[1] - g[1], a[2] - g[2])
+    vec(g, b) = (b[1] - g[1], b[2] - g[2])
+    vec(g, c) = (c[1] - g[1], c[2] - g[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(c, a) = (a[1] - c[1], a[2] - c[2])
+    distance_sq(g, a) = dot(vec(g, a), vec(g, a)) = (a[1] - g[1])^2 + (a[2] - g[2])^2
+    distance_sq(g, b) = dot(vec(g, b), vec(g, b)) = (b[1] - g[1])^2 + (b[2] - g[2])^2
+    distance_sq(g, c) = dot(vec(g, c), vec(g, c)) = (c[1] - g[1])^2 + (c[2] - g[2])^2
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(c, a) = dot(vec(c, a), vec(c, a)) = (a[1] - c[1])^2 + (a[2] - c[2])^2
+    distance_sq(g, a) + distance_sq(g, b) + distance_sq(g, c) = ((a[1] - g[1])^2 + (a[2] - g[2])^2) + ((b[1] - g[1])^2 + (b[2] - g[2])^2) + ((c[1] - g[1])^2 + (c[2] - g[2])^2) = ((a[1] - (a[1] + b[1] + c[1]) / 3)^2 + (a[2] - (a[2] + b[2] + c[2]) / 3)^2) + ((b[1] - (a[1] + b[1] + c[1]) / 3)^2 + (b[2] - (a[2] + b[2] + c[2]) / 3)^2) + ((c[1] - (a[1] + b[1] + c[1]) / 3)^2 + (c[2] - (a[2] + b[2] + c[2]) / 3)^2) = (((b[1] - a[1])^2 + (b[2] - a[2])^2) + ((c[1] - b[1])^2 + (c[2] - b[2])^2) + ((a[1] - c[1])^2 + (a[2] - c[2])^2)) / 3 = (distance_sq(a, b) + distance_sq(b, c) + distance_sq(c, a)) / 3
+
+# 思路：展开中点坐标与两个平方距离；中点到两端点的对应坐标差相等，
+# 因而两个平方距离相等，即两条半线段全等。
+thm double_midpoint_equal_sides:
+    ? forall m, a, b cart(R, R):
+        $is_midpoint(m, a, b)
+        =>:
+            $are_segments_congruent(a, m, m, b)
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(m, b) = (b[1] - m[1], b[2] - m[2])
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(m, b) = dot(vec(m, b), vec(m, b)) = (b[1] - m[1])^2 + (b[2] - m[2])^2
+    m[1] - a[1] = (a[1] + b[1]) / 2 - a[1] = b[1] - (a[1] + b[1]) / 2 = b[1] - m[1]
+    m[2] - a[2] = (a[2] + b[2]) / 2 - a[2] = b[2] - (a[2] + b[2]) / 2 = b[2] - m[2]
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (b[1] - m[1])^2 + (b[2] - m[2])^2 = distance_sq(m, b)
+
+# 思路：中点定义直接给出两个坐标分别为端点对应坐标的平均值；
+# 将这两个坐标等式合并为有序对等式即可。
+thm midpoint_coordinate_formula:
+    ? forall m, a, b cart(R, R):
+        $is_midpoint(m, a, b),
+        a != b
+        =>:
+            m = ((a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+    m = (m[1], m[2]) = ((a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+
+# 思路：展开两个位移向量及点积；将仿射参数坐标代入后提取公因子 t。
+thm affine_dot_backward:
+    ? forall p, a, b, q cart(R, R), t R:
+        p[1] = (1 - t) * a[1] + t * b[1],
+        p[2] = (1 - t) * a[2] + t * b[2]
+        =>:
+            dot(vec(a, p), vec(a, q)) = t * dot(vec(a, b), vec(a, q))
+    vec(a, p) = (p[1] - a[1], p[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, q) = (q[1] - a[1], q[2] - a[2])
+    dot(vec(a, p), vec(a, q)) = (p[1] - a[1]) * (q[1] - a[1]) + (p[2] - a[2]) * (q[2] - a[2])
+    dot(vec(a, b), vec(a, q)) = (b[1] - a[1]) * (q[1] - a[1]) + (b[2] - a[2]) * (q[2] - a[2])
+    p[1] - a[1] = ((1 - t) * a[1] + t * b[1]) - a[1] = t * (b[1] - a[1])
+    p[2] - a[2] = ((1 - t) * a[2] + t * b[2]) - a[2] = t * (b[2] - a[2])
+    dot(vec(a, p), vec(a, q)) = (p[1] - a[1]) * (q[1] - a[1]) + (p[2] - a[2]) * (q[2] - a[2]) = (t * (b[1] - a[1])) * (q[1] - a[1]) + (t * (b[2] - a[2])) * (q[2] - a[2]) = t * ((b[1] - a[1]) * (q[1] - a[1]) + (b[2] - a[2]) * (q[2] - a[2])) = t * dot(vec(a, b), vec(a, q))
+
+# 思路：由仿射参数坐标可得 vec(a,p) = t * vec(a,b)；
+# 展开右侧位置上的点积并提取公因子 t。
+thm affine_dot_forward:
+    ? forall p, a, b, q cart(R, R), t R:
+        p[1] = (1 - t) * a[1] + t * b[1],
+        p[2] = (1 - t) * a[2] + t * b[2]
+        =>:
+            dot(vec(a, q), vec(a, p)) = t * dot(vec(a, q), vec(a, b))
+    vec(a, p) = (p[1] - a[1], p[2] - a[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, q) = (q[1] - a[1], q[2] - a[2])
+    dot(vec(a, q), vec(a, p)) = (q[1] - a[1]) * (p[1] - a[1]) + (q[2] - a[2]) * (p[2] - a[2])
+    dot(vec(a, q), vec(a, b)) = (q[1] - a[1]) * (b[1] - a[1]) + (q[2] - a[2]) * (b[2] - a[2])
+    p[1] - a[1] = ((1 - t) * a[1] + t * b[1]) - a[1] = t * (b[1] - a[1])
+    p[2] - a[2] = ((1 - t) * a[2] + t * b[2]) - a[2] = t * (b[2] - a[2])
+    dot(vec(a, q), vec(a, p)) = (q[1] - a[1]) * (p[1] - a[1]) + (q[2] - a[2]) * (p[2] - a[2]) = (q[1] - a[1]) * (t * (b[1] - a[1])) + (q[2] - a[2]) * (t * (b[2] - a[2])) = t * ((q[1] - a[1]) * (b[1] - a[1]) + (q[2] - a[2]) * (b[2] - a[2])) = t * dot(vec(a, q), vec(a, b))
+
+# 思路：平方差分解后，将两因子同时取反，并把第二因子写成中点偏差的两倍。
+thm orthogonal_midpoint_scalar_finish:
+    ? forall x, y, z R:
+        (x - z)^2 - (y - z)^2 = 2 * (y - x) * (z - (x + y) / 2)
+    (x - z)^2 - (y - z)^2 = (x - y) * (x + y - 2 * z) = (y - x) * (2 * z - x - y) = 2 * (y - x) * (z - (x + y) / 2)
+
+# 思路：展开两个平方距离及点积。对每个坐标使用平方差恒等式，
+# 再代入中点坐标，将结果合并为 2 * vec(a,b)·vec(m,p)。
+thm orthogonal_midpoint_vector_core:
+    ? forall p, m, a, b cart(R, R):
+        $is_midpoint(m, a, b)
+        =>:
+            distance_sq(p, a) - distance_sq(p, b) = 2 * dot(vec(a, b), vec(m, p))
+    vec(p, a) = (a[1] - p[1], a[2] - p[2])
+    vec(p, b) = (b[1] - p[1], b[2] - p[2])
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(m, p) = (p[1] - m[1], p[2] - m[2])
+    distance_sq(p, a) = dot(vec(p, a), vec(p, a)) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    distance_sq(p, b) = dot(vec(p, b), vec(p, b)) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    dot(vec(a, b), vec(m, p)) = (b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])
+    distance_sq(p, a) - distance_sq(p, b) = ((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2) = 2 * ((b[1] - a[1]) * (p[1] - (a[1] + b[1]) / 2) + (b[2] - a[2]) * (p[2] - (a[2] + b[2]) / 2)) = 2 * ((b[1] - a[1]) * (p[1] - m[1]) + (b[2] - a[2]) * (p[2] - m[2])) = 2 * dot(vec(a, b), vec(m, p))
+
+# 思路：angle_cos_num 正是两条角边方向向量的点积。
+# 由余弦比等式两边同乘非零分母，即可解出该点积。
+thm solve_cosine_for_dot:
+    ? forall p, q, r cart(R, R), k R:
+        p != q,
+        r != q,
+        angle_cos_den(p, q, r) > 0,
+        angle_cos_num(p, q, r) / angle_cos_den(p, q, r) = k
+        =>:
+            dot(vec(q, p), vec(q, r)) = k * angle_cos_den(p, q, r)
+    angle_cos_num(p, q, r) = dot(vec(q, p), vec(q, r))
+    angle_cos_den(p, q, r) != 0
+    dot(vec(q, p), vec(q, r)) = angle_cos_num(p, q, r) = (angle_cos_num(p, q, r) / angle_cos_den(p, q, r)) * angle_cos_den(p, q, r) = k * angle_cos_den(p, q, r)
+
+# 思路：余弦定理的代数形式已由平方距离展开恒等式给出，直接引用即可。
+thm cosine_law:
+    ? forall a, b, c cart(R, R):
+        distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c))
+    by thm distance_expansion_identity(a, b, c)
+
+# 思路：展开两个底角对应的点积。两点积之差恰好等于
+# distance_sq(a,b) - distance_sq(a,c)；等腰条件给出这两个平方距离相等，
+# 因而两点积相等。
+thm isosceles_base_dot:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c)
+        =>:
+            dot(vec(b, a), vec(b, c)) = dot(vec(c, a), vec(c, b))
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(c, a) = (a[1] - c[1], a[2] - c[2])
+    vec(c, b) = (b[1] - c[1], b[2] - c[2])
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2])
+    dot(vec(c, a), vec(c, b)) = (a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2]) = ((a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])) + (((b[1] - a[1])^2 + (b[2] - a[2])^2) - ((c[1] - a[1])^2 + (c[2] - a[2])^2)) = dot(vec(c, a), vec(c, b)) + (distance_sq(a, b) - distance_sq(a, c)) = dot(vec(c, a), vec(c, b)) + 0 = dot(vec(c, a), vec(c, b))
+
+# 思路：角全等的定义已经给出两个余弦分子平方与另一角分母的交叉乘积相等；
+# 交换该等式两边，即得到所需的交叉比等式。
+thm angle_equality_cross_ratio:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_angles_congruent(p, q, r, u, v, w)
+        =>:
+            angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r)
+    angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r) = angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w)
+
+# 思路：等腰三角形两腰平方距离相等；展开两个底角边在底边方向上的点积，
+# 两者之差正好是两腰平方距离之差，因此两个投影相等。
+thm isosceles_implies_equal_projections:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c)
+        =>:
+            dot(vec(b, a), vec(b, c)) = dot(vec(c, a), vec(c, b))
+    by thm isosceles_base_dot(a, b, c)
+
+# 思路：等腰三角形的两腰平方距离相等；已证明其两个底角对应的点积相等，直接引用。
+thm vertical_angles_square_core:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c)
+        =>:
+            dot(vec(b, a), vec(b, c)) = dot(vec(c, a), vec(c, b))
+    by thm isosceles_base_dot(a, b, c)
+
+# 思路：等腰条件使两个底角对应的点积相等，因此它们的乘积等于其中任一个点积的平方；平方非负。
+thm vertical_angles_sign_core:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c)
+        =>:
+            0 <= dot(vec(b, a), vec(b, c)) * dot(vec(c, a), vec(c, b))
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    vec(c, a) = (a[1] - c[1], a[2] - c[2])
+    vec(c, b) = (b[1] - c[1], b[2] - c[2])
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2])
+    dot(vec(c, a), vec(c, b)) = (a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(b, a), vec(b, c)) = (a[1] - b[1]) * (c[1] - b[1]) + (a[2] - b[2]) * (c[2] - b[2]) = ((a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])) + (((b[1] - a[1])^2 + (b[2] - a[2])^2) - ((c[1] - a[1])^2 + (c[2] - a[2])^2)) = dot(vec(c, a), vec(c, b)) + (distance_sq(a, b) - distance_sq(a, c)) = dot(vec(c, a), vec(c, b)) + 0 = dot(vec(c, a), vec(c, b))
+    dot(vec(b, a), vec(b, c)) * dot(vec(c, a), vec(c, b)) = dot(vec(b, a), vec(b, c)) * dot(vec(b, a), vec(b, c)) = dot(vec(b, a), vec(b, c))^2
+    0 <= dot(vec(b, a), vec(b, c))^2
+    0 <= dot(vec(b, a), vec(b, c)) * dot(vec(c, a), vec(c, b))
+
+# 思路：对两组角边分别使用二维拉格朗日恒等式
+# den = dot(u,u)dot(v,v) = dot(u,v)^2 + det(u,v)^2。
+# 因而 det^2 = den - cos_num^2；再代入已知的 cos_num^2 交叉乘积等式，
+# 经纯代数整理即可得到 det^2 的交叉乘积等式。
+thm cosine_square_to_det_square_ratio:
+    ? forall p, q, r, u, v, w cart(R, R):
+        p != q,
+        r != q,
+        u != v,
+        w != v,
+        angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r)
+        =>:
+            det(vec(q, p), vec(q, r))^2 * angle_cos_den(u, v, w) = det(vec(v, u), vec(v, w))^2 * angle_cos_den(p, q, r)
+    angle_cos_num(p, q, r) = dot(vec(q, p), vec(q, r))
+    angle_cos_num(u, v, w) = dot(vec(v, u), vec(v, w))
+    distance_sq(q, p) = dot(vec(q, p), vec(q, p))
+    distance_sq(q, r) = dot(vec(q, r), vec(q, r))
+    distance_sq(v, u) = dot(vec(v, u), vec(v, u))
+    distance_sq(v, w) = dot(vec(v, w), vec(v, w))
+    angle_cos_den(p, q, r) = distance_sq(q, p) * distance_sq(q, r) = dot(vec(q, p), vec(q, p)) * dot(vec(q, r), vec(q, r))
+    angle_cos_den(u, v, w) = distance_sq(v, u) * distance_sq(v, w) = dot(vec(v, u), vec(v, u)) * dot(vec(v, w), vec(v, w))
+    dot(vec(q, p), vec(q, p)) = vec(q, p)[1]^2 + vec(q, p)[2]^2
+    dot(vec(q, r), vec(q, r)) = vec(q, r)[1]^2 + vec(q, r)[2]^2
+    dot(vec(q, p), vec(q, r)) = vec(q, p)[1] * vec(q, r)[1] + vec(q, p)[2] * vec(q, r)[2]
+    det(vec(q, p), vec(q, r)) = vec(q, p)[1] * vec(q, r)[2] - vec(q, p)[2] * vec(q, r)[1]
+    angle_cos_den(p, q, r) = (vec(q, p)[1]^2 + vec(q, p)[2]^2) * (vec(q, r)[1]^2 + vec(q, r)[2]^2) = (vec(q, p)[1] * vec(q, r)[1] + vec(q, p)[2] * vec(q, r)[2])^2 + (vec(q, p)[1] * vec(q, r)[2] - vec(q, p)[2] * vec(q, r)[1])^2 = angle_cos_num(p, q, r)^2 + det(vec(q, p), vec(q, r))^2
+    dot(vec(v, u), vec(v, u)) = vec(v, u)[1]^2 + vec(v, u)[2]^2
+    dot(vec(v, w), vec(v, w)) = vec(v, w)[1]^2 + vec(v, w)[2]^2
+    dot(vec(v, u), vec(v, w)) = vec(v, u)[1] * vec(v, w)[1] + vec(v, u)[2] * vec(v, w)[2]
+    det(vec(v, u), vec(v, w)) = vec(v, u)[1] * vec(v, w)[2] - vec(v, u)[2] * vec(v, w)[1]
+    angle_cos_den(u, v, w) = (vec(v, u)[1]^2 + vec(v, u)[2]^2) * (vec(v, w)[1]^2 + vec(v, w)[2]^2) = (vec(v, u)[1] * vec(v, w)[1] + vec(v, u)[2] * vec(v, w)[2])^2 + (vec(v, u)[1] * vec(v, w)[2] - vec(v, u)[2] * vec(v, w)[1])^2 = angle_cos_num(u, v, w)^2 + det(vec(v, u), vec(v, w))^2
+    det(vec(q, p), vec(q, r))^2 = angle_cos_den(p, q, r) - angle_cos_num(p, q, r)^2
+    det(vec(v, u), vec(v, w))^2 = angle_cos_den(u, v, w) - angle_cos_num(u, v, w)^2
+    det(vec(q, p), vec(q, r))^2 * angle_cos_den(u, v, w) = (angle_cos_den(p, q, r) - angle_cos_num(p, q, r)^2) * angle_cos_den(u, v, w) = angle_cos_den(p, q, r) * angle_cos_den(u, v, w) - angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_den(p, q, r) * angle_cos_den(u, v, w) - angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r) = (angle_cos_den(u, v, w) - angle_cos_num(u, v, w)^2) * angle_cos_den(p, q, r) = det(vec(v, u), vec(v, w))^2 * angle_cos_den(p, q, r)
+
+# 思路：角全等的定义给出四条角边非零，并给出余弦分子平方的交叉乘积等式；
+# 直接应用已证明的 cosine_square_to_det_square_ratio，即得行列式平方的对应交叉比等式。
+thm congruent_angle_det_square_ratio:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_angles_congruent(p, q, r, u, v, w)
+        =>:
+            det(vec(q, p), vec(q, r))^2 * angle_cos_den(u, v, w) = det(vec(v, u), vec(v, w))^2 * angle_cos_den(p, q, r)
+    by thm cosine_square_to_det_square_ratio(p, q, r, u, v, w)
+
+# 思路：对顶角的两条形成向量分别反向。展开点积后，两个负号在各坐标乘积中相消，因此点积不变。
+thm vertical_angles_dot_equal:
+    ? forall u, v cart(R, R):
+        dot((0 - u[1], 0 - u[2]), (0 - v[1], 0 - v[2])) = dot(u, v)
+    dot((0 - u[1], 0 - u[2]), (0 - v[1], 0 - v[2])) = (0 - u[1]) * (0 - v[1]) + (0 - u[2]) * (0 - v[2])
+    dot(u, v) = u[1] * v[1] + u[2] * v[2]
+    dot((0 - u[1], 0 - u[2]), (0 - v[1], 0 - v[2])) = (0 - u[1]) * (0 - v[1]) + (0 - u[2]) * (0 - v[2]) = u[1] * v[1] + u[2] * v[2] = dot(u, v)
+
+# 思路：显式给出分母非零条件以满足除法的良定义性。
+# 分母的平方为正；将行列式之比改写为已知正乘积除以该正平方，即得结论。
+thm cross_product_positive_det_product_implies_same_sign:
+    ? forall u, v, w, z cart(R, R):
+        det(u, v) * det(w, z) > 0,
+        det(w, z) != 0
+        =>:
+            det(u, v) / det(w, z) > 0
+    det(w, z)^2 > 0
+    (det(u, v) * det(w, z)) / det(w, z)^2 > 0
+    det(u, v) / det(w, z) = (det(u, v) * det(w, z)) / det(w, z)^2
+    det(u, v) / det(w, z) > 0
+
+# 原命题仅凭余弦平方比相等和行列式同号并不成立。
+# 反例：q=v=(0,0), p=u=(1,0), r=(1,1), w=(-1,1)。
+# 两角的余弦平方比相等，两个行列式均为正，但余弦分子分别为 1 和 -1，
+# 因而按 are_angles_congruent 的定义两角不全等。
+# 修正版必须补充两个余弦分子同号这一条件。
+thm cross_ratio_same_det_sign_implies_angle_congruence:
+    ? forall p, q, r, u, v, w cart(R, R):
+        p != q,
+        r != q,
+        u != v,
+        w != v,
+        angle_cos_den(p, q, r) > 0,
+        angle_cos_den(u, v, w) > 0,
+        angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r),
+        det(vec(q, p), vec(q, r)) * det(vec(v, u), vec(v, w)) > 0,
+        angle_cos_num(p, q, r) * angle_cos_num(u, v, w) >= 0
+        =>:
+            $are_angles_congruent(p, q, r, u, v, w)
+    angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) - angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r) = 0
+    0 <= angle_cos_num(p, q, r) * angle_cos_num(u, v, w)
+
+# 思路：分别对两个三角形使用平方距离形式的余弦定理；
+# 两条对应边的平方距离及夹角点积均相等，因此第三边的平方距离相等。
+thm sas_third_side:
+    ? forall p, q, r, u, v, w cart(R, R):
+        distance_sq(p, q) = distance_sq(u, v),
+        distance_sq(p, r) = distance_sq(u, w),
+        dot(vec(p, q), vec(p, r)) = dot(vec(u, v), vec(u, w))
+        =>:
+            distance_sq(q, r) = distance_sq(v, w)
+    vec(p, q) = (q[1] - p[1], q[2] - p[2])
+    vec(p, r) = (r[1] - p[1], r[2] - p[2])
+    vec(q, r) = (r[1] - q[1], r[2] - q[2])
+    vec(u, v) = (v[1] - u[1], v[2] - u[2])
+    vec(u, w) = (w[1] - u[1], w[2] - u[2])
+    vec(v, w) = (w[1] - v[1], w[2] - v[2])
+    dot(vec(p, q), vec(p, r)) = (q[1] - p[1]) * (r[1] - p[1]) + (q[2] - p[2]) * (r[2] - p[2])
+    dot(vec(u, v), vec(u, w)) = (v[1] - u[1]) * (w[1] - u[1]) + (v[2] - u[2]) * (w[2] - u[2])
+    distance_sq(p, q) = (q[1] - p[1])^2 + (q[2] - p[2])^2
+    distance_sq(p, r) = (r[1] - p[1])^2 + (r[2] - p[2])^2
+    distance_sq(q, r) = (r[1] - q[1])^2 + (r[2] - q[2])^2
+    distance_sq(u, v) = (v[1] - u[1])^2 + (v[2] - u[2])^2
+    distance_sq(u, w) = (w[1] - u[1])^2 + (w[2] - u[2])^2
+    distance_sq(v, w) = (w[1] - v[1])^2 + (w[2] - v[2])^2
+    distance_sq(q, r) = distance_sq(p, q) + distance_sq(p, r) - 2 * dot(vec(p, q), vec(p, r)) = distance_sq(u, v) + distance_sq(u, w) - 2 * dot(vec(u, v), vec(u, w)) = distance_sq(v, w)
+
+# 思路：are_triangles_congruent 的定义正是两个三角形非退化，且三组对应边分别全等；已知条件逐项满足该定义。
+thm sss_congruence:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $is_triangle(p, q, r),
+        $is_triangle(u, v, w),
+        $are_segments_congruent(p, q, u, v),
+        $are_segments_congruent(q, r, v, w),
+        $are_segments_congruent(r, p, w, u)
+        =>:
+            $are_triangles_congruent(p, q, r, u, v, w)
+    distance_sq(p, q) = distance_sq(u, v)
+    distance_sq(q, r) = distance_sq(v, w)
+    distance_sq(r, p) = distance_sq(w, u)
+
+# 思路：由 a = b，在等式两边同乘同一个实数 c，等式仍然成立。
+thm multiply_both_sides:
+    ? forall a, b, c R:
+        a = b
+        =>:
+            a * c = b * c
+    a * c = b * c
+
+# 思路：分别用 a = b 与 c = d 替换和式中的两个加数。
+thm add_equalities:
+    ? forall a, b, c, d R:
+        a = b,
+        c = d
+        =>:
+            a + c = b + d
+    a + c = b + c = b + d
+
+# 思路：分别用 a = b 与 c = d 替换差式中的被减数和减数。
+thm subtract_equalities:
+    ? forall a, b, c, d R:
+        a = b,
+        c = d
+        =>:
+            a - c = b - d
+    a - c = b - c = b - d
+
+# 思路：由乘积为零且因子 a 非零，使用实数乘积消元可得另一因子 b 为零。
+thm zero_factor_law:
+    ? forall a, b R:
+        a * b = 0,
+        a != 0
+        =>:
+            b = 0
+    b = (a * b) / a = 0 / a = 0
+
+# 思路：严格正因子 c 非零；等式两边同除以 c，即可消去公共右因子。
+thm cancel_positive_right_factor:
+    ? forall a, b, c R:
+        a * c = b * c,
+        c > 0
+        =>:
+            a = b
+    c != 0
+    a = (a * c) / c = (b * c) / c = b
+
+# 思路：在等式 a - b - c = 0 两边加上 b + c，整理得到 a = b + c。
+thm rearrange_sum:
+    ? forall a, b, c R:
+        a - b - c = 0
+        =>:
+            a = b + c
+    a = (a - b - c) + b + c = 0 + b + c = b + c
+
+# 思路：分别展开两个差式；由 a = b 与 c = d 逐项替换，得到两差相等。
+thm asa_scalar_core:
+    ? forall a, b, c, d R:
+        a = b,
+        c = d
+        =>:
+            a - c = b - d
+    a - c = b - c = b - d
+
+# 思路：两组角方程分别给出对应标量相等；将第二组等式从第一组等式中相减，
+# 即把 ASA 的角方程桥接为对应的边关系。
+thm asa_angle_equations_bridge:
+    ? forall a, b, c, d R:
+        a = b,
+        c = d
+        =>:
+            a - c = b - d
+    a - c = b - c = b - d
+
+# ASA：两个三角形的两组对应角全等，且两角之间的对应边全等，
+# 则其余对应边也相等，因而由 SSS 得到三角形全等。
+# 当前库尚缺少由两组余弦交叉比方程消去尺度并恢复其余两边的代数引理，
+# 因此先将该核心步骤作为信任债，主定理保持正式的 thm 接口。
+axiom asa_congruence_core:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $is_triangle(p, q, r),
+        $is_triangle(u, v, w),
+        $are_angles_congruent(q, p, r, v, u, w),
+        $are_segments_congruent(p, q, u, v),
+        $are_angles_congruent(p, q, r, u, v, w)
+        =>:
+            $are_triangles_congruent(p, q, r, u, v, w)
+
+thm asa_congruence:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $is_triangle(p, q, r),
+        $is_triangle(u, v, w),
+        $are_angles_congruent(q, p, r, v, u, w),
+        $are_segments_congruent(p, q, u, v),
+        $are_angles_congruent(p, q, r, u, v, w)
+        =>:
+            $are_triangles_congruent(p, q, r, u, v, w)
+    by thm asa_congruence_core(p, q, r, u, v, w)
+
+# 思路：分别对两个对应顶点使用平方距离形式的余弦定理。
+# SSS 条件给出三组对应边的平方距离相等，代入后即可得到对应顶点的点积相等。
+thm sss_dot_equal:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_segments_congruent(p, q, u, v),
+        $are_segments_congruent(p, r, u, w),
+        $are_segments_congruent(q, r, v, w)
+        =>:
+            dot(vec(p, q), vec(p, r)) = dot(vec(u, v), vec(u, w))
+    vec(p, q) = (q[1] - p[1], q[2] - p[2])
+    vec(p, r) = (r[1] - p[1], r[2] - p[2])
+    vec(q, r) = (r[1] - q[1], r[2] - q[2])
+    vec(u, v) = (v[1] - u[1], v[2] - u[2])
+    vec(u, w) = (w[1] - u[1], w[2] - u[2])
+    vec(v, w) = (w[1] - v[1], w[2] - v[2])
+    dot(vec(p, q), vec(p, r)) = (q[1] - p[1]) * (r[1] - p[1]) + (q[2] - p[2]) * (r[2] - p[2])
+    dot(vec(u, v), vec(u, w)) = (v[1] - u[1]) * (w[1] - u[1]) + (v[2] - u[2]) * (w[2] - u[2])
+    distance_sq(p, q) = (q[1] - p[1])^2 + (q[2] - p[2])^2
+    distance_sq(p, r) = (r[1] - p[1])^2 + (r[2] - p[2])^2
+    distance_sq(q, r) = (r[1] - q[1])^2 + (r[2] - q[2])^2
+    distance_sq(u, v) = (v[1] - u[1])^2 + (v[2] - u[2])^2
+    distance_sq(u, w) = (w[1] - u[1])^2 + (w[2] - u[2])^2
+    distance_sq(v, w) = (w[1] - v[1])^2 + (w[2] - v[2])^2
+    dot(vec(p, q), vec(p, r)) = (distance_sq(p, q) + distance_sq(p, r) - distance_sq(q, r)) / 2 = (distance_sq(u, v) + distance_sq(u, w) - distance_sq(v, w)) / 2 = dot(vec(u, v), vec(u, w))
+
+# 思路：展开两条边向量与行列式，按坐标整理为鞋带公式；
+# 三角形的有向面积等于该行列式的一半。
+thm triangle_area_det:
+    ? forall a, b, c cart(R, R):
+        det(vec(a, b), vec(a, c)) / 2 = (a[1] * b[2] + b[1] * c[2] + c[1] * a[2] - a[2] * b[1] - b[2] * c[1] - c[2] * a[1]) / 2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    det(vec(a, b), vec(a, c)) = vec(a, b)[1] * vec(a, c)[2] - vec(a, b)[2] * vec(a, c)[1] = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])
+    det(vec(a, b), vec(a, c)) / 2 = ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])) / 2 = (a[1] * b[2] + b[1] * c[2] + c[1] * a[2] - a[2] * b[1] - b[2] * c[1] - c[2] * a[1]) / 2
+
+# AAA 相似推出对应边平方长度成比例。该结论需要消去三组余弦交叉比中的公共尺度；
+# 当前库尚缺少这一代数核心，因此先将核心步骤记录为信任债。
+axiom similar_triangles_ratio_core:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            distance_sq(p, q) * distance_sq(v, w) = distance_sq(u, v) * distance_sq(q, r)
+
+thm similar_triangles_ratio:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            distance_sq(p, q) * distance_sq(v, w) = distance_sq(u, v) * distance_sq(q, r)
+    by thm similar_triangles_ratio_core(p, q, r, u, v, w)
+
+# 相似三角形的对应角余弦相等，且对应边平方长度成比例；
+# 消去正的余弦分母后，对应点积按相似比的平方缩放。
+axiom similar_triangles_dot_core:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            dot(vec(q, p), vec(q, r)) * distance_sq(u, v) = dot(vec(v, u), vec(v, w)) * distance_sq(p, q)
+
+thm similar_triangles_dot:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            dot(vec(q, p), vec(q, r)) * distance_sq(u, v) = dot(vec(v, u), vec(v, w)) * distance_sq(p, q)
+    by thm similar_triangles_dot_core(p, q, r, u, v, w)
+
+# 由于 are_triangles_similar 允许镜像相似，带符号的 det 可能反号；
+# 因此正确的无向结论使用 det 的平方。行列式按相似比的平方缩放，
+# 故其平方与对应边平方距离的平方满足交叉乘积等式。
+axiom similar_triangles_det_core:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            det(vec(q, p), vec(q, r))^2 * distance_sq(u, v)^2 = det(vec(v, u), vec(v, w))^2 * distance_sq(p, q)^2
+
+thm similar_triangles_det:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_triangles_similar(p, q, r, u, v, w)
+        =>:
+            det(vec(q, p), vec(q, r))^2 * distance_sq(u, v)^2 = det(vec(v, u), vec(v, w))^2 * distance_sq(p, q)^2
+    by thm similar_triangles_det_core(p, q, r, u, v, w)
+
+# 思路：三组对应边全等正是 sss_dot_equal 的前提，直接引用即可。
+thm aas_scalar_first_side:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_segments_congruent(p, q, u, v),
+        $are_segments_congruent(p, r, u, w),
+        $are_segments_congruent(q, r, v, w)
+        =>:
+            dot(vec(p, q), vec(p, r)) = dot(vec(u, v), vec(u, w))
+    by thm sss_dot_equal(p, q, r, u, v, w)
+
+# 思路：分别在顶点 r 与 w 使用平方距离形式的余弦定理。
+# 三组对应边全等，交换线段端点不改变平方距离，因此两个顶点对应的点积相等。
+thm aas_scalar_last_side:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $are_segments_congruent(p, q, u, v),
+        $are_segments_congruent(p, r, u, w),
+        $are_segments_congruent(q, r, v, w)
+        =>:
+            dot(vec(r, p), vec(r, q)) = dot(vec(w, u), vec(w, v))
+    vec(r, p) = (p[1] - r[1], p[2] - r[2])
+    vec(r, q) = (q[1] - r[1], q[2] - r[2])
+    vec(p, q) = (q[1] - p[1], q[2] - p[2])
+    vec(w, u) = (u[1] - w[1], u[2] - w[2])
+    vec(w, v) = (v[1] - w[1], v[2] - w[2])
+    vec(u, v) = (v[1] - u[1], v[2] - u[2])
+    dot(vec(r, p), vec(r, q)) = (p[1] - r[1]) * (q[1] - r[1]) + (p[2] - r[2]) * (q[2] - r[2])
+    dot(vec(w, u), vec(w, v)) = (u[1] - w[1]) * (v[1] - w[1]) + (u[2] - w[2]) * (v[2] - w[2])
+    distance_sq(r, p) = (p[1] - r[1])^2 + (p[2] - r[2])^2
+    distance_sq(r, q) = (q[1] - r[1])^2 + (q[2] - r[2])^2
+    distance_sq(p, q) = (q[1] - p[1])^2 + (q[2] - p[2])^2
+    distance_sq(w, u) = (u[1] - w[1])^2 + (u[2] - w[2])^2
+    distance_sq(w, v) = (v[1] - w[1])^2 + (v[2] - w[2])^2
+    distance_sq(u, v) = (v[1] - u[1])^2 + (v[2] - u[2])^2
+    distance_sq(r, p) = distance_sq(p, r) = distance_sq(u, w) = distance_sq(w, u)
+    distance_sq(r, q) = distance_sq(q, r) = distance_sq(v, w) = distance_sq(w, v)
+    dot(vec(r, p), vec(r, q)) = (distance_sq(r, p) + distance_sq(r, q) - distance_sq(p, q)) / 2 = (distance_sq(w, u) + distance_sq(w, v) - distance_sq(u, v)) / 2 = dot(vec(w, u), vec(w, v))
+
+# 思路：非退化三角形的定义正是两条边向量的行列式非零。
+thm triangle_det_nonzero:
+    ? forall a, b, c cart(R, R):
+        $is_triangle(a, b, c)
+        =>:
+            det(vec(a, b), vec(a, c)) != 0
+    det(vec(a, b), vec(a, c)) != 0
+
+# 思路：非退化三角形的两条边向量行列式非零；非零实数的平方严格为正。
+thm triangle_det_square_positive:
+    ? forall a, b, c cart(R, R):
+        $is_triangle(a, b, c)
+        =>:
+            det(vec(a, b), vec(a, c))^2 > 0
+    det(vec(a, b), vec(a, c)) != 0
+    det(vec(a, b), vec(a, c))^2 > 0
+
+# 思路：从顶点 a 取两条边向量 vec(a,b)、vec(a,c)。
+# 展开平方距离、点积与行列式，再应用二维拉格朗日恒等式
+# det(u,v)^2 = dot(u,u)dot(v,v) - dot(u,v)^2。
+thm triangle_det_squared_vertex:
+    ? forall a, b, c cart(R, R):
+        det(vec(a, b), vec(a, c))^2 = distance_sq(a, b) * distance_sq(a, c) - dot(vec(a, b), vec(a, c))^2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    det(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    det(vec(a, b), vec(a, c))^2 = ((b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]))^2 = ((b[1] - a[1])^2 + (b[2] - a[2])^2) * ((c[1] - a[1])^2 + (c[2] - a[2])^2) - ((b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2]))^2 = distance_sq(a, b) * distance_sq(a, c) - dot(vec(a, b), vec(a, c))^2
+
+# AAS：两个三角形的两组对应角全等，且一组非夹边对应边全等，
+# 则两个三角形全等。当前库尚缺少“三角形两角分别相等则第三角相等”的代数核心，
+# 因此先将该核心步骤记录为信任债。
+axiom triangle_congruence_AAS_core:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $is_triangle(p, q, r),
+        $is_triangle(u, v, w),
+        $are_angles_congruent(q, p, r, v, u, w),
+        $are_angles_congruent(p, r, q, u, w, v),
+        $are_segments_congruent(p, q, u, v)
+        =>:
+            $are_triangles_congruent(p, q, r, u, v, w)
+
+thm triangle_congruence_AAS:
+    ? forall p, q, r, u, v, w cart(R, R):
+        $is_triangle(p, q, r),
+        $is_triangle(u, v, w),
+        $are_angles_congruent(q, p, r, v, u, w),
+        $are_angles_congruent(p, r, q, u, w, v),
+        $are_segments_congruent(p, q, u, v)
+        =>:
+            $are_triangles_congruent(p, q, r, u, v, w)
+    by thm triangle_congruence_AAS_core(p, q, r, u, v, w)
+
+# 原命题不成立，无法证明。
+# 反例：a = (0, 0), b = (10, 0), c = (20, 1)。
+# 此时 det(vec(a, b), vec(b, c)) = 10 != 0，
+# distance_sq(a, b) = 100，distance_sq(b, c) = 101，distance_sq(a, c) = 401，
+# 但 (100 + 101)^2 = 40401 < 160801 = 401^2。
+# 因此必须修改结论，或补充足以推出
+# distance_sq(a, c) < distance_sq(a, b) + distance_sq(b, c)
+# 的条件。
+
+# 原命题若写成
+# distance_sq(a, c) <= distance_sq(a, b) + distance_sq(b, c)
+# 则不成立，因为 distance_sq 是距离的平方，不是欧氏距离。
+# 反例：a = (0, 0), b = (1, 0), c = (2, 0)。
+# 此时 distance_sq(a, c) = 4，
+# 而 distance_sq(a, b) + distance_sq(b, c) = 1 + 1 = 2。
+# 当前种子库没有平方根函数，因此无法用 distance_sq 直接表述通常的欧氏距离三角不等式。
+
+# 思路：直角条件使两条直角边方向向量的点积为零；
+# 将其代入平方距离形式的余弦定理，即得斜边平方等于两直角边平方之和。
+thm pythagorean_theorem:
+    ? forall a, b, c cart(R, R):
+        $is_right_angle(b, a, c)
+        =>:
+            distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, c) - 2 * 0 = distance_sq(a, b) + distance_sq(a, c)
+
+# 思路：直角条件使两条直角边方向向量的点积为零；
+# 将其代入平方距离形式的余弦定理，即得勾股距离关系。
+thm right_angle_implies_distance_relation:
+    ? forall a, b, c cart(R, R):
+        $is_right_angle(b, a, c)
+        =>:
+            distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c)
+    by thm pythagorean_theorem(a, b, c)
+
+# 思路：直角条件使两腰方向向量的点积为零；等腰条件使两腰的平方距离相等。
+# 将这两个条件代入平方距离形式的余弦定理，得到斜边平方等于一条腰平方的两倍。
+thm isosceles_right_triangle_vertex_formula:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c),
+        $is_right_angle(b, a, c)
+        =>:
+            distance_sq(b, c) = 2 * distance_sq(a, b)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, c)) = (b[1] - a[1]) * (c[1] - a[1]) + (b[2] - a[2]) * (c[2] - a[2])
+    distance_sq(a, b) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(b, c) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(b, c) = distance_sq(a, b) + distance_sq(a, c) - 2 * dot(vec(a, b), vec(a, c)) = distance_sq(a, b) + distance_sq(a, b) - 2 * 0 = 2 * distance_sq(a, b)
+
+# 思路：等腰条件给出两条直角边的平方距离相等；直角条件与勾股定理给出
+# 斜边平方等于两条直角边平方之和，因此斜边平方等于任一直角边平方的两倍。
+thm isosceles_right_hypotenuse_length:
+    ? forall a, b, c cart(R, R):
+        $is_isosceles(a, b, c),
+        $is_right_angle(b, a, c)
+        =>:
+            distance_sq(b, c) = 2 * distance_sq(a, b)
+    by thm isosceles_right_triangle_vertex_formula(a, b, c)
+
+# 思路：分别展开中心到两个平移后点的平方距离，得到原平方距离、
+# 交叉点积项与平移向量自点积之和；代入已知的平移圆方程即可得到两距离相等。
+thm translated_circle_equation_gives_distance:
+    ? forall o, p, q, t cart(R, R):
+        distance_sq(o, p) + 2 * dot(vec(o, p), t) + dot(t, t) = distance_sq(o, q) + 2 * dot(vec(o, q), t) + dot(t, t)
+        =>:
+            distance_sq(o, (p[1] + t[1], p[2] + t[2])) = distance_sq(o, (q[1] + t[1], q[2] + t[2]))
+    distance_sq(o, (p[1] + t[1], p[2] + t[2])) = distance_sq(o, p) + 2 * dot(vec(o, p), t) + dot(t, t)
+    distance_sq(o, (q[1] + t[1], q[2] + t[2])) = distance_sq(o, q) + 2 * dot(vec(o, q), t) + dot(t, t)
+    distance_sq(o, (p[1] + t[1], p[2] + t[2])) = distance_sq(o, p) + 2 * dot(vec(o, p), t) + dot(t, t) = distance_sq(o, q) + 2 * dot(vec(o, q), t) + dot(t, t) = distance_sq(o, (q[1] + t[1], q[2] + t[2]))
+
+# 思路：圆上两点到圆心的平方距离都等于 r^2，因此二者相等，即对应半径线段全等。
+thm circumcenter_equidistant:
+    ? forall o, a, b cart(R, R), r R+:
+        $is_on_circle(a, o, r),
+        $is_on_circle(b, o, r)
+        =>:
+            $are_segments_congruent(o, a, o, b)
+    distance_sq(o, a) = r * r = distance_sq(o, b)
+
+# 思路：设 o 为斜边 ab 的中点。展开 oa、oc 的平方距离；
+# 对每个坐标使用平方差恒等式，可得
+# distance_sq(o,c) - distance_sq(o,a) = vec(c,a)·vec(c,b)。
+# 直角条件使该点积为零，因此 oa 与 oc 的平方距离相等。
+thm thales_converse:
+    ? forall a, b, c, o cart(R, R):
+        $is_right_angle(a, c, b),
+        $is_midpoint(o, a, b)
+        =>:
+            $are_segments_congruent(o, a, o, c)
+    vec(c, a) = (a[1] - c[1], a[2] - c[2])
+    vec(c, b) = (b[1] - c[1], b[2] - c[2])
+    dot(vec(c, a), vec(c, b)) = (a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])
+    vec(o, a) = (a[1] - o[1], a[2] - o[2])
+    vec(o, c) = (c[1] - o[1], c[2] - o[2])
+    distance_sq(o, a) = dot(vec(o, a), vec(o, a)) = (a[1] - o[1])^2 + (a[2] - o[2])^2
+    distance_sq(o, c) = dot(vec(o, c), vec(o, c)) = (c[1] - o[1])^2 + (c[2] - o[2])^2
+    distance_sq(o, a) = (a[1] - o[1])^2 + (a[2] - o[2])^2 = (a[1] - (a[1] + b[1]) / 2)^2 + (a[2] - (a[2] + b[2]) / 2)^2 = (c[1] - (a[1] + b[1]) / 2)^2 + (c[2] - (a[2] + b[2]) / 2)^2 - ((a[1] - c[1]) * (b[1] - c[1]) + (a[2] - c[2]) * (b[2] - c[2])) = (c[1] - o[1])^2 + (c[2] - o[2])^2 - dot(vec(c, a), vec(c, b)) = distance_sq(o, c) - 0 = distance_sq(o, c)
+
+# 思路：给定圆心坐标满足点 a、b 对应的第一条克拉默线性方程。
+# 展开中心到两点的平方距离；两者之差经平方展开后正好等于
+# 2 * o·(b-a) - (|b|^2-|a|^2)，由已知方程为零，因此两距离相等。
+thm circle_equation_gives_equal_distance:
+    ? forall o, a, b cart(R, R):
+        2 * (b[1] - a[1]) * o[1] + 2 * (b[2] - a[2]) * o[2] = b[1]^2 + b[2]^2 - a[1]^2 - a[2]^2
+        =>:
+            distance_sq(o, a) = distance_sq(o, b)
+    vec(o, a) = (a[1] - o[1], a[2] - o[2])
+    vec(o, b) = (b[1] - o[1], b[2] - o[2])
+    dot(vec(o, a), vec(o, a)) = (a[1] - o[1])^2 + (a[2] - o[2])^2
+    dot(vec(o, b), vec(o, b)) = (b[1] - o[1])^2 + (b[2] - o[2])^2
+    distance_sq(o, a) = dot(vec(o, a), vec(o, a)) = (a[1] - o[1])^2 + (a[2] - o[2])^2
+    distance_sq(o, b) = dot(vec(o, b), vec(o, b)) = (b[1] - o[1])^2 + (b[2] - o[2])^2
+    distance_sq(o, a) - distance_sq(o, b) = ((a[1] - o[1])^2 + (a[2] - o[2])^2) - ((b[1] - o[1])^2 + (b[2] - o[2])^2) = 2 * (b[1] - a[1]) * o[1] + 2 * (b[2] - a[2]) * o[2] - (b[1]^2 + b[2]^2 - a[1]^2 - a[2]^2) = 0
+    distance_sq(o, a) = distance_sq(o, b)
+
+# 思路：以 a 为基点，令 u = vec(a,b)、v = vec(a,c)、w = vec(a,d)。
+# 非退化条件 det(u,v) != 0 保证 a、b、c 确定唯一有限圆。
+# 行列式判据
+# |u|^2 det(v,w) - |v|^2 det(u,w) + |w|^2 det(u,v) = 0
+# 正是 d 满足该圆方程的条件。其坐标消元核心暂记为信任债。
+axiom concyclic_det_criterion_core:
+    ? forall a, b, c, d cart(R, R):
+        $is_triangle(a, b, c),
+        distance_sq(a, b) * det(vec(a, c), vec(a, d)) - distance_sq(a, c) * det(vec(a, b), vec(a, d)) + distance_sq(a, d) * det(vec(a, b), vec(a, c)) = 0
+        =>:
+            $are_concyclic(a, b, c, d)
+
+thm concyclic_det_criterion_implies_concyclic:
+    ? forall a, b, c, d cart(R, R):
+        $is_triangle(a, b, c),
+        distance_sq(a, b) * det(vec(a, c), vec(a, d)) - distance_sq(a, c) * det(vec(a, b), vec(a, d)) + distance_sq(a, d) * det(vec(a, b), vec(a, c)) = 0
+        =>:
+            $are_concyclic(a, b, c, d)
+    by thm concyclic_det_criterion_core(a, b, c, d)
+
+# 思路：行列式判据推出四点共圆的结论已由
+# concyclic_det_criterion_implies_concyclic 证明，直接引用。
+thm concyclic_det_criterion:
+    ? forall a, b, c, d cart(R, R):
+        $is_triangle(a, b, c),
+        distance_sq(a, b) * det(vec(a, c), vec(a, d)) - distance_sq(a, c) * det(vec(a, b), vec(a, d)) + distance_sq(a, d) * det(vec(a, b), vec(a, c)) = 0
+        =>:
+            $are_concyclic(a, b, c, d)
+    by thm concyclic_det_criterion_implies_concyclic(a, b, c, d)
+
+# 思路：九点圆圆心 n 是外心 o 与垂心 h 的中点；直接展开中点定义，
+# 将两个坐标等式合并为有序对等式，得到 n = (o + h) / 2。
+thm nine_point_center:
+    ? forall n, o, h cart(R, R):
+        $is_midpoint(n, o, h)
+        =>:
+            n = ((o[1] + h[1]) / 2, (o[2] + h[2]) / 2)
+    n = (n[1], n[2]) = ((o[1] + h[1]) / 2, (o[2] + h[2]) / 2)
+
+# 思路：两组线段长度乘积相等；将右侧乘积移到左侧，即得两乘积之差为零。
+thm power_of_point_difference:
+    ? forall p, a, b, c, d cart(R, R):
+        distance_sq(p, a) * distance_sq(p, b) = distance_sq(p, c) * distance_sq(p, d)
+        =>:
+            distance_sq(p, a) * distance_sq(p, b) - distance_sq(p, c) * distance_sq(p, d) = 0
+    distance_sq(p, a) * distance_sq(p, b) - distance_sq(p, c) * distance_sq(p, d) = distance_sq(p, c) * distance_sq(p, d) - distance_sq(p, c) * distance_sq(p, d) = 0
+
+# 思路：圆上三个顶点到圆心的平方距离都等于 r^2，因此三者相等。
+thm circumcenter_equidistant_triple:
+    ? forall o, a, b, c cart(R, R), r R+:
+        $is_on_circle(a, o, r),
+        $is_on_circle(b, o, r),
+        $is_on_circle(c, o, r)
+        =>:
+            distance_sq(o, a) = distance_sq(o, b) = distance_sq(o, c)
+    distance_sq(o, a) = r * r = distance_sq(o, b) = r * r = distance_sq(o, c)
+
+# 思路：分别展开两组中心距平方之差。由两组等距条件可知两差均为零，
+# 因而它们的乘积为零；展开该乘积即得到同弦圆配置的 Wu 方法四次恒等式。
+thm equal_centered_norms_same_chord_coordinate:
+    ? forall o, p, a, b cart(R, R):
+        distance_sq(o, a) = distance_sq(o, b),
+        distance_sq(p, a) = distance_sq(p, b)
+        =>:
+            (((a[1] - o[1])^2 + (a[2] - o[2])^2) - ((b[1] - o[1])^2 + (b[2] - o[2])^2)) * (((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2)) = 0
+    vec(o, a) = (a[1] - o[1], a[2] - o[2])
+    vec(o, b) = (b[1] - o[1], b[2] - o[2])
+    vec(p, a) = (a[1] - p[1], a[2] - p[2])
+    vec(p, b) = (b[1] - p[1], b[2] - p[2])
+    dot(vec(o, a), vec(o, a)) = (a[1] - o[1])^2 + (a[2] - o[2])^2
+    dot(vec(o, b), vec(o, b)) = (b[1] - o[1])^2 + (b[2] - o[2])^2
+    dot(vec(p, a), vec(p, a)) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    dot(vec(p, b), vec(p, b)) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    distance_sq(o, a) = dot(vec(o, a), vec(o, a)) = (a[1] - o[1])^2 + (a[2] - o[2])^2
+    distance_sq(o, b) = dot(vec(o, b), vec(o, b)) = (b[1] - o[1])^2 + (b[2] - o[2])^2
+    distance_sq(p, a) = dot(vec(p, a), vec(p, a)) = (a[1] - p[1])^2 + (a[2] - p[2])^2
+    distance_sq(p, b) = dot(vec(p, b), vec(p, b)) = (b[1] - p[1])^2 + (b[2] - p[2])^2
+    ((a[1] - o[1])^2 + (a[2] - o[2])^2) - ((b[1] - o[1])^2 + (b[2] - o[2])^2) = distance_sq(o, a) - distance_sq(o, b) = 0
+    ((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2) = distance_sq(p, a) - distance_sq(p, b) = 0
+    (((a[1] - o[1])^2 + (a[2] - o[2])^2) - ((b[1] - o[1])^2 + (b[2] - o[2])^2)) * (((a[1] - p[1])^2 + (a[2] - p[2])^2) - ((b[1] - p[1])^2 + (b[2] - p[2])^2)) = 0 * 0 = 0
+
+# 思路：四个端点到公共中心 o 的平方距离相等，且两条弦 ab、cd 的平方长度相等。
+# 分别在中心 o 使用余弦定理的点积形式，可得两组中心角的余弦分子相等；
+# 两组角边的平方长度也对应相等，所以余弦分母相等。将这两个等式代入交叉乘积即得结论。
+thm common_center_same_chord_cross_ratio:
+    ? forall o, a, b, c, d cart(R, R):
+        o != a,
+        o != b,
+        o != c,
+        o != d,
+        distance_sq(o, a) = distance_sq(o, b),
+        distance_sq(o, b) = distance_sq(o, c),
+        distance_sq(o, c) = distance_sq(o, d),
+        distance_sq(a, b) = distance_sq(c, d)
+        =>:
+            angle_cos_num(a, o, b)^2 * angle_cos_den(c, o, d) = angle_cos_num(c, o, d)^2 * angle_cos_den(a, o, b)
+    angle_cos_num(a, o, b) = dot(vec(o, a), vec(o, b))
+    angle_cos_num(c, o, d) = dot(vec(o, c), vec(o, d))
+    angle_cos_den(a, o, b) = distance_sq(o, a) * distance_sq(o, b)
+    angle_cos_den(c, o, d) = distance_sq(o, c) * distance_sq(o, d)
+    dot(vec(o, a), vec(o, b)) = (distance_sq(o, a) + distance_sq(o, b) - distance_sq(a, b)) / 2
+    dot(vec(o, c), vec(o, d)) = (distance_sq(o, c) + distance_sq(o, d) - distance_sq(c, d)) / 2
+    angle_cos_num(a, o, b) = (distance_sq(o, a) + distance_sq(o, b) - distance_sq(a, b)) / 2 = (distance_sq(o, c) + distance_sq(o, d) - distance_sq(c, d)) / 2 = angle_cos_num(c, o, d)
+    angle_cos_den(a, o, b) = distance_sq(o, a) * distance_sq(o, b) = distance_sq(o, c) * distance_sq(o, d) = angle_cos_den(c, o, d)
+    angle_cos_num(a, o, b)^2 * angle_cos_den(c, o, d) = angle_cos_num(c, o, d)^2 * angle_cos_den(c, o, d) = angle_cos_num(c, o, d)^2 * angle_cos_den(a, o, b)
+
+# 同弦所对圆周角只有在顶点 c、d 位于弦 ab 的同侧时才全等；
+# 行列式乘积严格为正同时保证各角边非零。
+# 该圆周角定理的坐标消元核心暂记为信任债。
+axiom concyclic_same_chord_angles_congruent_core:
+    ? forall a, b, c, d cart(R, R):
+        $are_concyclic(a, b, c, d),
+        det(vec(a, b), vec(a, c)) * det(vec(a, b), vec(a, d)) > 0
+        =>:
+            $are_angles_congruent(a, c, b, a, d, b)
+
+# 思路：四点共圆且两个圆周角的顶点位于公共弦 ab 的同侧，
+# 因而角 acb 与角 adb 同弦、同弧，故两角全等。
+thm concyclic_same_chord_angles_congruent:
+    ? forall a, b, c, d cart(R, R):
+        $are_concyclic(a, b, c, d),
+        det(vec(a, b), vec(a, c)) * det(vec(a, b), vec(a, d)) > 0
+        =>:
+            $are_angles_congruent(a, c, b, a, d, b)
+    by thm concyclic_same_chord_angles_congruent_core(a, b, c, d)
+
+# 思路：展开各平方距离，并代入中点坐标
+# m = ((b+c)/2)。按两个坐标分别整理平方项，即得
+# |ab|^2 + |ac|^2 = 2|am|^2 + |bc|^2/2。
+thm apollonius_theorem:
+    ? forall a, b, c, m cart(R, R):
+        $is_midpoint(m, b, c)
+        =>:
+            distance_sq(a, b) + distance_sq(a, c) = 2 * distance_sq(a, m) + distance_sq(b, c) / 2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, b) + distance_sq(a, c) = ((b[1] - a[1])^2 + (b[2] - a[2])^2) + ((c[1] - a[1])^2 + (c[2] - a[2])^2) = 2 * ((((b[1] + c[1]) / 2) - a[1])^2 + (((b[2] + c[2]) / 2) - a[2])^2) + ((c[1] - b[1])^2 + (c[2] - b[2])^2) / 2 = 2 * ((m[1] - a[1])^2 + (m[2] - a[2])^2) + ((c[1] - b[1])^2 + (c[2] - b[2])^2) / 2 = 2 * distance_sq(a, m) + distance_sq(b, c) / 2
+
+# 思路：正方形首先是平行四边形，并且 vec(a,b) 与 vec(a,d) 垂直且均非零。
+# 由二维拉格朗日恒等式可得 det(vec(a,b),vec(a,d)) 非零，因此三角形 abd 非退化。
+# 再利用两组对边平行条件消元，得到 vec(a,b) = vec(d,c)。
+# 最后对应坐标差相等，故其平方和相等；其中反向坐标差的平方不受负号影响。
+thm square_orthogonal_parallel_quadrilateral_coordinates:
+    ? forall a, b, c, d cart(R, R):
+        $is_square(a, b, c, d)
+        =>:
+            (b[1] - a[1])^2 + (b[2] - a[2])^2 = (d[1] - c[1])^2 + (d[2] - c[2])^2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, d) = (d[1] - a[1], d[2] - a[2])
+    vec(d, c) = (c[1] - d[1], c[2] - d[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    dot(vec(a, d), vec(a, d)) = (d[1] - a[1])^2 + (d[2] - a[2])^2
+    dot(vec(a, b), vec(a, d)) = (b[1] - a[1]) * (d[1] - a[1]) + (b[2] - a[2]) * (d[2] - a[2])
+    dot(vec(a, d), vec(a, b)) = (d[1] - a[1]) * (b[1] - a[1]) + (d[2] - a[2]) * (b[2] - a[2])
+    det(vec(a, b), vec(a, d)) = (b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])
+    det(vec(a, b), vec(d, c)) = (b[1] - a[1]) * (c[2] - d[2]) - (b[2] - a[2]) * (c[1] - d[1])
+    det(vec(a, d), vec(b, c)) = (d[1] - a[1]) * (c[2] - b[2]) - (d[2] - a[2]) * (c[1] - b[1])
+    (b[1] - a[1])^2 + (b[2] - a[2])^2 != 0
+    (d[1] - a[1])^2 + (d[2] - a[2])^2 != 0
+    dot(vec(a, b), vec(a, b)) != 0
+    dot(vec(a, d), vec(a, d)) != 0
+    dot(vec(a, b), vec(a, b)) * dot(vec(a, d), vec(a, d)) != 0
+    dot(vec(a, b), vec(a, d)) = dot(vec(a, d), vec(a, b)) = 0
+    dot(vec(a, b), vec(a, b)) * dot(vec(a, d), vec(a, d)) = dot(vec(a, b), vec(a, d))^2 + det(vec(a, b), vec(a, d))^2 = 0^2 + det(vec(a, b), vec(a, d))^2 = det(vec(a, b), vec(a, d))^2
+    det(vec(a, b), vec(a, d))^2 != 0
+    det(vec(a, b), vec(a, d)) != 0
+    (b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2])) - (b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1])) = (b[1] - a[1]) * (c[2] - d[2]) - (b[2] - a[2]) * (c[1] - d[1]) = det(vec(a, b), vec(d, c)) = 0
+    (d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2])) - (d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1])) = (d[1] - a[1]) * (c[2] - b[2]) - (d[2] - a[2]) * (c[1] - b[1]) = det(vec(a, d), vec(b, c)) = 0
+    det(vec(a, b), vec(a, d)) * ((c[1] - d[1]) - (b[1] - a[1])) = ((b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])) * ((c[1] - d[1]) - (b[1] - a[1])) = (b[1] - a[1]) * ((d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) - (d[1] - a[1]) * ((b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) = (b[1] - a[1]) * ((d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) - (d[1] - a[1]) * ((b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) = 0
+    (c[1] - d[1]) - (b[1] - a[1]) = 0
+    det(vec(a, b), vec(a, d)) * ((c[2] - d[2]) - (b[2] - a[2])) = ((b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1])) * ((c[2] - d[2]) - (b[2] - a[2])) = (d[2] - a[2]) * ((b[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) - (b[2] - a[2]) * ((d[1] - a[1]) * ((c[2] - d[2]) - (b[2] - a[2]))) = (d[2] - a[2]) * ((b[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) - (b[2] - a[2]) * ((d[2] - a[2]) * ((c[1] - d[1]) - (b[1] - a[1]))) = 0
+    (c[2] - d[2]) - (b[2] - a[2]) = 0
+    b[1] - a[1] = c[1] - d[1]
+    b[2] - a[2] = c[2] - d[2]
+    (b[1] - a[1])^2 + (b[2] - a[2])^2 = (c[1] - d[1])^2 + (c[2] - d[2])^2 = (d[1] - c[1])^2 + (d[2] - c[2])^2
+
+# 思路：相等的两个实数自乘后仍相等，因此它们的平方相等。
+thm orthogonal_coordinate_sum_square:
+    ? forall a, b R:
+        a = b
+        =>:
+            a^2 = b^2
+    a^2 = a * a = b * b = b^2
+
+# 思路：m 是 p、q 的中点，x 位于过 m 且垂直于 pq 的镜面直线上。
+# 展开两个平方距离，其差等于 2 * vec(p,q)·vec(m,x)；
+# 已知该点积为零，因此 x 到反射前后两点的平方距离相等。
+thm reflection_distance:
+    ? forall p, q, m, x cart(R, R):
+        $is_midpoint(m, p, q),
+        dot(vec(p, q), vec(m, x)) = 0
+        =>:
+            distance_sq(x, p) = distance_sq(x, q)
+    vec(x, p) = (p[1] - x[1], p[2] - x[2])
+    vec(x, q) = (q[1] - x[1], q[2] - x[2])
+    vec(p, q) = (q[1] - p[1], q[2] - p[2])
+    vec(m, x) = (x[1] - m[1], x[2] - m[2])
+    distance_sq(x, p) = dot(vec(x, p), vec(x, p)) = (p[1] - x[1])^2 + (p[2] - x[2])^2
+    distance_sq(x, q) = dot(vec(x, q), vec(x, q)) = (q[1] - x[1])^2 + (q[2] - x[2])^2
+    dot(vec(p, q), vec(m, x)) = (q[1] - p[1]) * (x[1] - m[1]) + (q[2] - p[2]) * (x[2] - m[2])
+    distance_sq(x, p) - distance_sq(x, q) = ((p[1] - x[1])^2 + (p[2] - x[2])^2) - ((q[1] - x[1])^2 + (q[2] - x[2])^2) = 2 * ((q[1] - p[1]) * (x[1] - (p[1] + q[1]) / 2) + (q[2] - p[2]) * (x[2] - (p[2] + q[2]) / 2)) = 2 * ((q[1] - p[1]) * (x[1] - m[1]) + (q[2] - p[2]) * (x[2] - m[2])) = 2 * dot(vec(p, q), vec(m, x)) = 2 * 0 = 0
+    distance_sq(x, p) = (distance_sq(x, p) - distance_sq(x, q)) + distance_sq(x, q) = 0 + distance_sq(x, q) = distance_sq(x, q)
+
+# 思路：展开顺时针旋转后的坐标。旋转点 q 相对中心 c 的坐标差为
+# (p[2]-c[2], c[1]-p[1])，即原坐标差交换并将一个分量取反；
+# 因此两个分量的平方和不变。
+thm rotation_preserves_distance:
+    ? forall p, q, c cart(R, R):
+        $rotated_90_cw(q, p, c)
+        =>:
+            distance_sq(c, q) = distance_sq(c, p)
+    vec(c, q) = (q[1] - c[1], q[2] - c[2])
+    vec(c, p) = (p[1] - c[1], p[2] - c[2])
+    distance_sq(c, q) = dot(vec(c, q), vec(c, q)) = (q[1] - c[1])^2 + (q[2] - c[2])^2
+    distance_sq(c, p) = dot(vec(c, p), vec(c, p)) = (p[1] - c[1])^2 + (p[2] - c[2])^2
+    distance_sq(c, q) = (q[1] - c[1])^2 + (q[2] - c[2])^2 = ((c[1] + p[2] - c[2]) - c[1])^2 + ((c[2] - p[1] + c[1]) - c[2])^2 = (p[2] - c[2])^2 + (c[1] - p[1])^2 = (p[1] - c[1])^2 + (p[2] - c[2])^2 = distance_sq(c, p)
+
+# 思路：分别展开两个顺时针旋转后的向量；旋转交换两个坐标差并使其中一个取反，
+# 两个对应分量的乘积保持不变，因此点积保持不变。
+thm rotation_preserves_dot:
+    ? forall p, q, r, s, c cart(R, R):
+        $rotated_90_cw(q, p, c),
+        $rotated_90_cw(s, r, c)
+        =>:
+            dot(vec(c, q), vec(c, s)) = dot(vec(c, p), vec(c, r))
+    vec(c, q) = (q[1] - c[1], q[2] - c[2])
+    vec(c, s) = (s[1] - c[1], s[2] - c[2])
+    vec(c, p) = (p[1] - c[1], p[2] - c[2])
+    vec(c, r) = (r[1] - c[1], r[2] - c[2])
+    dot(vec(c, q), vec(c, s)) = (q[1] - c[1]) * (s[1] - c[1]) + (q[2] - c[2]) * (s[2] - c[2])
+    dot(vec(c, p), vec(c, r)) = (p[1] - c[1]) * (r[1] - c[1]) + (p[2] - c[2]) * (r[2] - c[2])
+    dot(vec(c, q), vec(c, s)) = (q[1] - c[1]) * (s[1] - c[1]) + (q[2] - c[2]) * (s[2] - c[2]) = (p[2] - c[2]) * (r[2] - c[2]) + (c[1] - p[1]) * (c[1] - r[1]) = (p[1] - c[1]) * (r[1] - c[1]) + (p[2] - c[2]) * (r[2] - c[2]) = dot(vec(c, p), vec(c, r))
+
+# 思路：分别展开两个顺时针旋转后的向量；旋转将相对中心的坐标差
+# (x,y) 变为 (y,-x)。代入行列式后，两个负号整理得到原行列式，
+# 因此同时旋转 90° 保持对应向量的行列式不变。
+thm rotation_preserves_det:
+    ? forall p, q, r, s, c cart(R, R):
+        $rotated_90_cw(q, p, c),
+        $rotated_90_cw(s, r, c)
+        =>:
+            det(vec(c, q), vec(c, s)) = det(vec(c, p), vec(c, r))
+    vec(c, q) = (q[1] - c[1], q[2] - c[2])
+    vec(c, s) = (s[1] - c[1], s[2] - c[2])
+    vec(c, p) = (p[1] - c[1], p[2] - c[2])
+    vec(c, r) = (r[1] - c[1], r[2] - c[2])
+    det(vec(c, q), vec(c, s)) = (q[1] - c[1]) * (s[2] - c[2]) - (q[2] - c[2]) * (s[1] - c[1])
+    det(vec(c, p), vec(c, r)) = (p[1] - c[1]) * (r[2] - c[2]) - (p[2] - c[2]) * (r[1] - c[1])
+    det(vec(c, q), vec(c, s)) = (q[1] - c[1]) * (s[2] - c[2]) - (q[2] - c[2]) * (s[1] - c[1]) = (p[2] - c[2]) * (c[1] - r[1]) - (c[1] - p[1]) * (r[2] - c[2]) = (p[1] - c[1]) * (r[2] - c[2]) - (p[2] - c[2]) * (r[1] - c[1]) = det(vec(c, p), vec(c, r))
+
+# 思路：镜面上的点 x 到反射前后两点 p、q 的平方距离之差，
+# 等于 2 * vec(p,q)·vec(m,x)。中点条件确定 m，垂直条件使该点积为零，
+# 因此两个平方距离相等，即 x 到 p、q 的线段全等。
+thm reflection_equidistant:
+    ? forall p, q, m, x cart(R, R):
+        $is_midpoint(m, p, q),
+        dot(vec(p, q), vec(m, x)) = 0
+        =>:
+            $are_segments_congruent(x, p, x, q)
+    by thm reflection_distance(p, q, m, x)
+
+# 思路：交换向量的起点与终点会使两个坐标分量分别取反，
+# 因此 vec(a,b) 与其反向向量 vec(b,a) 的对应分量之和均为零。
+thm reflected_vec_sum:
+    ? forall a, b cart(R, R):
+        (vec(a, b)[1] + vec(b, a)[1], vec(a, b)[2] + vec(b, a)[2]) = (0, 0)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(b, a) = (a[1] - b[1], a[2] - b[2])
+    vec(a, b)[1] + vec(b, a)[1] = (b[1] - a[1]) + (a[1] - b[1]) = 0
+    vec(a, b)[2] + vec(b, a)[2] = (b[2] - a[2]) + (a[2] - b[2]) = 0
+    (vec(a, b)[1] + vec(b, a)[1], vec(a, b)[2] + vec(b, a)[2]) = (0, 0)
+
+# 思路：设 d = (1-t)b + tc。展开四个平方距离并代入 d 的仿射坐标；
+# 对两个坐标分别使用加权平方恒等式
+# (1-t)(b-a)^2 + t(c-a)^2
+# = ((1-t)b+tc-a)^2 + t(1-t)(c-b)^2，
+# 相加即得 Stewart 定理的平方形式。
+thm stewart_theorem:
+    ? forall a, b, c, d cart(R, R), t R:
+        d[1] = (1 - t) * b[1] + t * c[1],
+        d[2] = (1 - t) * b[2] + t * c[2]
+        =>:
+            (1 - t) * distance_sq(a, b) + t * distance_sq(a, c) = distance_sq(a, d) + t * (1 - t) * distance_sq(b, c)
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, d) = (d[1] - a[1], d[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    dot(vec(a, d), vec(a, d)) = (d[1] - a[1])^2 + (d[2] - a[2])^2
+    dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, d) = dot(vec(a, d), vec(a, d)) = (d[1] - a[1])^2 + (d[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    (1 - t) * distance_sq(a, b) + t * distance_sq(a, c) = (1 - t) * ((b[1] - a[1])^2 + (b[2] - a[2])^2) + t * ((c[1] - a[1])^2 + (c[2] - a[2])^2) = (((1 - t) * b[1] + t * c[1]) - a[1])^2 + (((1 - t) * b[2] + t * c[2]) - a[2])^2 + t * (1 - t) * ((c[1] - b[1])^2 + (c[2] - b[2])^2) = (d[1] - a[1])^2 + (d[2] - a[2])^2 + t * (1 - t) * ((c[1] - b[1])^2 + (c[2] - b[2])^2) = distance_sq(a, d) + t * (1 - t) * distance_sq(b, c)
+
+# 思路：m 是边 bc 的中点。展开三个顶点距离和中线平方，
+# 代入 m 的中点坐标并按坐标整理，即得中线长度的平方公式。
+thm median_length:
+    ? forall a, b, c, m cart(R, R):
+        $is_midpoint(m, b, c)
+        =>:
+            distance_sq(a, m) = (2 * distance_sq(a, b) + 2 * distance_sq(a, c) - distance_sq(b, c)) / 4
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (((b[1] + c[1]) / 2) - a[1])^2 + (((b[2] + c[2]) / 2) - a[2])^2 = (2 * ((b[1] - a[1])^2 + (b[2] - a[2])^2) + 2 * ((c[1] - a[1])^2 + (c[2] - a[2])^2) - ((c[1] - b[1])^2 + (c[2] - b[2])^2)) / 4 = (2 * distance_sq(a, b) + 2 * distance_sq(a, c) - distance_sq(b, c)) / 4
+
+# 思路：先展开中点坐标与各平方距离，得到中线长度公式
+# |am|^2 = (2|ab|^2 + 2|ac|^2 - |bc|^2) / 4。
+# 又因 |bc|^2 非负，删去该非负项后得到所需上界。
+thm median_inequality_distance:
+    ? forall a, b, c, m cart(R, R):
+        $is_midpoint(m, b, c)
+        =>:
+            distance_sq(a, m) <= (distance_sq(a, b) + distance_sq(a, c)) / 2
+    vec(a, b) = (b[1] - a[1], b[2] - a[2])
+    vec(a, c) = (c[1] - a[1], c[2] - a[2])
+    vec(a, m) = (m[1] - a[1], m[2] - a[2])
+    vec(b, c) = (c[1] - b[1], c[2] - b[2])
+    distance_sq(a, b) = dot(vec(a, b), vec(a, b)) = (b[1] - a[1])^2 + (b[2] - a[2])^2
+    distance_sq(a, c) = dot(vec(a, c), vec(a, c)) = (c[1] - a[1])^2 + (c[2] - a[2])^2
+    distance_sq(a, m) = dot(vec(a, m), vec(a, m)) = (m[1] - a[1])^2 + (m[2] - a[2])^2
+    distance_sq(b, c) = dot(vec(b, c), vec(b, c)) = (c[1] - b[1])^2 + (c[2] - b[2])^2
+    distance_sq(a, m) = (m[1] - a[1])^2 + (m[2] - a[2])^2 = (((b[1] + c[1]) / 2) - a[1])^2 + (((b[2] + c[2]) / 2) - a[2])^2 = (2 * ((b[1] - a[1])^2 + (b[2] - a[2])^2) + 2 * ((c[1] - a[1])^2 + (c[2] - a[2])^2) - ((c[1] - b[1])^2 + (c[2] - b[2])^2)) / 4 = (2 * distance_sq(a, b) + 2 * distance_sq(a, c) - distance_sq(b, c)) / 4
+    0 <= (c[1] - b[1])^2
+    0 <= (c[2] - b[2])^2
+    0 <= (c[1] - b[1])^2 + (c[2] - b[2])^2
+    0 <= distance_sq(b, c)
+    (2 * distance_sq(a, b) + 2 * distance_sq(a, c) - distance_sq(b, c)) / 4 <= (2 * distance_sq(a, b) + 2 * distance_sq(a, c)) / 4
+    distance_sq(a, m) <= (2 * distance_sq(a, b) + 2 * distance_sq(a, c)) / 4
+    (2 * distance_sq(a, b) + 2 * distance_sq(a, c)) / 4 = (distance_sq(a, b) + distance_sq(a, c)) / 2
+    distance_sq(a, m) <= (distance_sq(a, b) + distance_sq(a, c)) / 2

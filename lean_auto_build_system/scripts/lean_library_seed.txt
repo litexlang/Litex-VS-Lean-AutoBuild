@@ -1,0 +1,6 @@
+-- LeanGeo 基础定义
+import Mathlib.Data.Real.Basic
+import Mathlib.Tactic
+
+-- 点是实数坐标对
+abbrev Point := ℝ × ℝ

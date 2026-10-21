@@ -1,0 +1,154 @@
+# ============================================================
+# LitexGeo AutoBuild — session 导出库
+# committed 条目数: 36
+# axiom 债务数: 0
+# 用法: 搜 `^axiom ` 找到信任债，改回 thm + 证明即可。
+# ============================================================
+
+# LitexGeo 基础库
+
+# 点是实数坐标对
+have points set = cart(R, R)
+
+# 向量：从 A 到 B
+have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+
+# 点积
+have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
+
+# 行列式
+have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
+
+# ---------- session 已提交内容（定义 / thm / axiom）----------
+
+have fn distance_sq(a, b cart(R, R)) R = dot(vec(a, b), vec(a, b))
+
+have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = {p cart(R, R): a * p[1] + b * p[2] + c = 0}
+
+have fn line_of(a, b cart(R, R): a != b) power_set(cart(R, R)) = {p cart(R, R): det(vec(a, p), vec(a, b)) = 0}
+
+have fn angle_cos_num(p, q, r cart(R, R)) R = dot(vec(q, p), vec(q, r))
+
+have fn angle_cos_den(p, q, r cart(R, R)) R = distance_sq(q, p) * distance_sq(q, r)
+
+have fn circle(o cart(R, R), r R) power_set(cart(R, R)) = {p cart(R, R): distance_sq(o, p) = r * r}
+
+prop is_on_segment(p, a, b cart(R, R)):
+    exist t R st {0 <= t, t <= 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+prop is_on_ray(p, a, b cart(R, R)):
+    exist t R st {0 <= t, p[1] = a[1] + t * (b[1] - a[1]), p[2] = a[2] + t * (b[2] - a[2])}
+
+prop is_collinear(p, q, r cart(R, R)):
+    det(vec(p, q), vec(p, r)) = 0
+
+prop are_segments_congruent(a, b, c, d cart(R, R)):
+    distance_sq(a, b) = distance_sq(c, d)
+
+prop are_angles_congruent(p, q, r, u, v, w cart(R, R)):
+    angle_cos_den(p, q, r) > 0
+    angle_cos_den(u, v, w) > 0
+    angle_cos_num(p, q, r)^2 * angle_cos_den(u, v, w) = angle_cos_num(u, v, w)^2 * angle_cos_den(p, q, r)
+    angle_cos_num(p, q, r) * angle_cos_num(u, v, w) >= 0
+
+prop is_right_angle(p, q, r cart(R, R)):
+    p != q
+    r != q
+    dot(vec(q, p), vec(q, r)) = 0
+
+prop is_parallel(a, b, c, d cart(R, R)):
+    a != b
+    c != d
+    det(vec(a, b), vec(c, d)) = 0
+
+prop is_perpendicular(a, b, c, d cart(R, R)):
+    a != b
+    c != d
+    dot(vec(a, b), vec(c, d)) = 0
+
+prop is_line(l power_set(cart(R, R))):
+    exist a, b, c R st {a != 0 or b != 0, l = line(a, b, c)}
+
+prop is_midpoint(m, a, b cart(R, R)):
+    m[1] = (a[1] + b[1]) / 2
+    m[2] = (a[2] + b[2]) / 2
+
+prop is_affine_combination(p, a, b cart(R, R)):
+    exist t R st {p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+prop is_centroid(g, a, b, c cart(R, R)):
+    g[1] = (a[1] + b[1] + c[1]) / 3
+    g[2] = (a[2] + b[2] + c[2]) / 3
+
+prop is_on_line(p, a, b cart(R, R)):
+    a != b
+    p $in line_of(a, b)
+
+prop is_on_extension(p, a, b cart(R, R)):
+    exist t R st {t > 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+
+prop is_foot(f, p, a, b cart(R, R)):
+    $is_on_line(f, a, b)
+    dot(vec(p, f), vec(a, b)) = 0
+
+prop is_angle_bisector(a, b, c, d cart(R, R)):
+    $are_angles_congruent(a, b, d, d, b, c)
+
+prop is_triangle(a, b, c cart(R, R)):
+    det(vec(a, b), vec(a, c)) != 0
+
+prop is_isosceles(a, b, c cart(R, R)):
+    $is_triangle(a, b, c)
+    $are_segments_congruent(a, b, a, c)
+
+prop is_equilateral(a, b, c cart(R, R)):
+    $is_triangle(a, b, c)
+    $are_segments_congruent(a, b, b, c)
+    $are_segments_congruent(b, c, c, a)
+
+prop are_triangles_congruent(p, q, r, u, v, w cart(R, R)):
+    $is_triangle(p, q, r)
+    $is_triangle(u, v, w)
+    $are_segments_congruent(p, q, u, v)
+    $are_segments_congruent(q, r, v, w)
+    $are_segments_congruent(r, p, w, u)
+
+prop are_triangles_similar(p, q, r, u, v, w cart(R, R)):
+    $is_triangle(p, q, r)
+    $is_triangle(u, v, w)
+    $are_angles_congruent(q, p, r, v, u, w)
+    $are_angles_congruent(p, q, r, u, v, w)
+    $are_angles_congruent(p, r, q, u, w, v)
+
+prop is_parallelogram(a, b, c, d cart(R, R)):
+    $is_parallel(a, b, d, c)
+    $is_parallel(a, d, b, c)
+
+prop is_rectangle(a, b, c, d cart(R, R)):
+    $is_parallelogram(a, b, c, d)
+    $is_right_angle(d, a, b)
+
+prop is_rhombus(a, b, c, d cart(R, R)):
+    $is_parallelogram(a, b, c, d)
+    $are_segments_congruent(a, b, b, c)
+
+prop is_square(a, b, c, d cart(R, R)):
+    $is_rectangle(a, b, c, d)
+    $are_segments_congruent(a, b, b, c)
+
+prop is_on_circle(p, o cart(R, R), r R):
+    distance_sq(o, p) = r * r
+
+prop are_concyclic(a, b, c, d cart(R, R)):
+    exist o cart(R, R) st {distance_sq(o, a) = distance_sq(o, b), distance_sq(o, b) = distance_sq(o, c), distance_sq(o, c) = distance_sq(o, d)}
+
+prop is_diameter_endpoints(a, b, o cart(R, R)):
+    $is_midpoint(o, a, b)
+
+prop rotated_90_cw(q, p, c cart(R, R)):
+    q[1] = c[1] + p[2] - c[2]
+    q[2] = c[2] - p[1] + c[1]
+
+prop rotated_90_ccw(q, p, c cart(R, R)):
+    q[1] = c[1] - p[2] + c[2]
+    q[2] = c[2] + p[1] - c[1]

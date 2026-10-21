@@ -1,0 +1,37 @@
+# 忽略实验输出目录（用户自己的运行结果）
+lean_auto_validated_250tasks/definitions_only/run_*/
+lean_auto_validated_250tasks/theorems_only/run_*/
+
+# 但保留目录结构
+!lean_auto_validated_250tasks/definitions_only/.gitkeep
+!lean_auto_validated_250tasks/theorems_only/.gitkeep
+
+# 忽略API配置文件（包含密钥）
+config/api_config.json
+
+# 但保留示例配置
+!config/api_config.example.json
+
+# 忽略临时日志文件
+*.log
+nohup.out
+
+# 忽略Python缓存
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 忽略IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# 忽略消融实验输出
+lean_ablation/
+/.lake

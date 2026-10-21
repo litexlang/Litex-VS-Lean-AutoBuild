@@ -1,0 +1,13 @@
+# LitexGeo 基础库
+
+# 点是实数坐标对
+have points set = cart(R, R)
+
+# 向量：从 A 到 B
+have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+
+# 点积
+have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
+
+# 行列式
+have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
