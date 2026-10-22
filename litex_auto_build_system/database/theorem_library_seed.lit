@@ -6,19 +6,19 @@
 have points set = cart(R, R)
 
 # Vector from A to B.
-have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
 
 # Dot product.
-have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
+have fn dot(u, v cart(R, R)) R = u(1) * v(1) + u(2) * v(2)
 
 # 2D determinant (signed parallelogram area / cross product z-component).
-have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
+have fn det(u, v cart(R, R)) R = u(1) * v(2) - u(2) * v(1)
 
 # Squared Euclidean distance |ab|^2 (avoids square roots).
 have fn distance_sq(a, b cart(R, R)) R = dot(vec(a, b), vec(a, b))
 
 # General form: the line ax + by + c = 0 (a, b not both zero).
-have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = {p cart(R, R): a * p[1] + b * p[2] + c = 0}
+have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = {p cart(R, R): a * p(1) + b * p(2) + c = 0}
 
 # Two-point form: the unique line through distinct points a and b
 # (collinearity: det(vec(a, p), vec(a, b)) = 0).
@@ -36,11 +36,11 @@ have fn circle(o cart(R, R), r R) power_set(cart(R, R)) = {p cart(R, R): distanc
 
 # p lies on the closed segment between a and b.
 prop is_on_segment(p, a, b cart(R, R)):
-    exist t R st {0 <= t, t <= 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+    exist t R st {0 <= t, t <= 1, p(1) = (1 - t) * a(1) + t * b(1), p(2) = (1 - t) * a(2) + t * b(2)}
 
 # p lies on the ray from a through b (t >= 0).
 prop is_on_ray(p, a, b cart(R, R)):
-    exist t R st {0 <= t, p[1] = a[1] + t * (b[1] - a[1]), p[2] = a[2] + t * (b[2] - a[2])}
+    exist t R st {0 <= t, p(1) = a(1) + t * (b(1) - a(1)), p(2) = a(2) + t * (b(2) - a(2))}
 
 # Points p, q, r are collinear.
 prop is_collinear(p, q, r cart(R, R)):
@@ -81,17 +81,17 @@ prop is_line(l power_set(cart(R, R))):
 
 # m is the midpoint of segment ab.
 prop is_midpoint(m, a, b cart(R, R)):
-    m[1] = (a[1] + b[1]) / 2
-    m[2] = (a[2] + b[2]) / 2
+    m(1) = (a(1) + b(1)) / 2
+    m(2) = (a(2) + b(2)) / 2
 
 # p lies on the affine line through a and b (any real parameter t).
 prop is_affine_combination(p, a, b cart(R, R)):
-    exist t R st {p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+    exist t R st {p(1) = (1 - t) * a(1) + t * b(1), p(2) = (1 - t) * a(2) + t * b(2)}
 
 # g is the centroid of triangle abc.
 prop is_centroid(g, a, b, c cart(R, R)):
-    g[1] = (a[1] + b[1] + c[1]) / 3
-    g[2] = (a[2] + b[2] + c[2]) / 3
+    g(1) = (a(1) + b(1) + c(1)) / 3
+    g(2) = (a(2) + b(2) + c(2)) / 3
 
 # p lies on the line through distinct points a and b.
 prop is_on_line(p, a, b cart(R, R)):
@@ -100,7 +100,7 @@ prop is_on_line(p, a, b cart(R, R)):
 
 # p lies on the extension of segment ab beyond b (t > 1).
 prop is_on_extension(p, a, b cart(R, R)):
-    exist t R st {t > 1, p[1] = (1 - t) * a[1] + t * b[1], p[2] = (1 - t) * a[2] + t * b[2]}
+    exist t R st {t > 1, p(1) = (1 - t) * a(1) + t * b(1), p(2) = (1 - t) * a(2) + t * b(2)}
 
 # f is the foot of the perpendicular from p to line ab.
 prop is_foot(f, p, a, b cart(R, R)):
@@ -176,10 +176,10 @@ prop is_diameter_endpoints(a, b, o cart(R, R)):
 
 # q is p rotated 90 degrees clockwise about c.
 prop rotated_90_cw(q, p, c cart(R, R)):
-    q[1] = c[1] + p[2] - c[2]
-    q[2] = c[2] - p[1] + c[1]
+    q(1) = c(1) + p(2) - c(2)
+    q(2) = c(2) - p(1) + c(1)
 
 # q is p rotated 90 degrees counterclockwise about c.
 prop rotated_90_ccw(q, p, c cart(R, R)):
-    q[1] = c[1] - p[2] + c[2]
-    q[2] = c[2] + p[1] - c[1]
+    q(1) = c(1) - p(2) + c(2)
+    q(2) = c(2) + p(1) - c(1)

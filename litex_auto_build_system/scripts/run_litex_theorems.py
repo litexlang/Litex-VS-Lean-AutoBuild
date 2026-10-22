@@ -1606,7 +1606,7 @@ please fix your code based on error information and short guide。only output co
 
                 # automatic validation
                 print("🤖 Automatic validation in progress...")
-                is_valid, compiler_output = self.validator.validate(
+                is_valid, compiler_output, raw_result = self.validator.validate(
                     extracted_code,
                     self.get_library_context()
                 )

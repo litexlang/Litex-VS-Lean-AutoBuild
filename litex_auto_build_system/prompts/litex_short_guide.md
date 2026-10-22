@@ -18,8 +18,8 @@ have fn name(arg1, arg2 Type) ReturnType = expression
 
 **Examples**:
 ```litex
-have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
-have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
+have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
+have fn dot(u, v cart(R, R)) R = u(1) * v(1) + u(2) * v(2)
 have fn distance_sq(A, B cart(R, R)) R = dot(vec(A, B), vec(A, B))
 ```
 
@@ -46,7 +46,7 @@ have fn name(arg1, arg2 Type: constraint) power_set(ElementType) = {element Elem
 ```litex
 # Line (general equation)
 have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = 
-    {p cart(R, R): a * p[1] + b * p[2] + c = 0}
+    {p cart(R, R): a * p(1) + b * p(2) + c = 0}
 
 # Line through two points
 have fn line_of(a, b cart(R, R): a != b) power_set(cart(R, R)) = 
@@ -365,11 +365,11 @@ det(vec(p, r), vec(p, q)) = -det(vec(p, q), vec(p, r))  # litex cannot verify
 **✅ Correct: Use equation chain to expand**:
 ```litex
 # First expand both det definitions
-det(vec(p, r), vec(p, q)) = vec(p, r)[1] * vec(p, q)[2] - vec(p, r)[2] * vec(p, q)[1]
-det(vec(p, q), vec(p, r)) = vec(p, q)[1] * vec(p, r)[2] - vec(p, q)[2] * vec(p, r)[1]
+det(vec(p, r), vec(p, q)) = vec(p, r)(1) * vec(p, q)(2) - vec(p, r)(2) * vec(p, q)(1)
+det(vec(p, q), vec(p, r)) = vec(p, q)(1) * vec(p, r)(2) - vec(p, q)(2) * vec(p, r)(1)
 
 # Then connect with equation chain (multiple steps in one line)
-det(vec(p, r), vec(p, q)) = vec(p, r)[1] * vec(p, q)[2] - vec(p, r)[2] * vec(p, q)[1] = -(vec(p, q)[1] * vec(p, r)[2] - vec(p, q)[2] * vec(p, r)[1]) = -det(vec(p, q), vec(p, r))
+det(vec(p, r), vec(p, q)) = vec(p, r)(1) * vec(p, q)(2) - vec(p, r)(2) * vec(p, q)(1) = -(vec(p, q)(1) * vec(p, r)(2) - vec(p, q)(2) * vec(p, r)(1)) = -det(vec(p, q), vec(p, r))
 ```
 
 **Multiple-step connections in equation chains**:
@@ -393,14 +393,14 @@ LiteX does not automatically expand functions defined with `have fn`. If you wan
 
 **❌ Error: Directly using function definition**:
 ```litex
-# Seed library has: have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+# Seed library has: have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
 
 thm my_theorem:
     ? forall A, B cart(R, R):
         ...
     distance_sq(A, B) = dot(vec(A, B), vec(A, B))
-    dot(vec(A, B), vec(A, B)) = (B[1] - A[1]) * (B[1] - A[1]) + ...  # ❌ Error!
-    # LiteX doesn't know vec(A, B) = (B[1] - A[1], B[2] - A[2])
+    dot(vec(A, B), vec(A, B)) = (B(1) - A(1)) * (B(1) - A(1)) + ...  # ❌ Error!
+    # LiteX doesn't know vec(A, B) = (B(1) - A(1), B(2) - A(2))
 ```
 
 **✅ Correct: Declare definition first, then use**:
@@ -408,24 +408,24 @@ thm my_theorem:
 thm my_theorem:
     ? forall A, B cart(R, R):
         ...
-    vec(A, B) = (B[1] - A[1], B[2] - A[2])              # ← Declare expansion first
-    vec(B, A) = (A[1] - B[1], A[2] - B[2])              # ← Declare another if needed
+    vec(A, B) = (B(1) - A(1), B(2) - A(2))              # ← Declare expansion first
+    vec(B, A) = (A(1) - B(1), A(2) - B(2))              # ← Declare another if needed
     distance_sq(A, B) = dot(vec(A, B), vec(A, B))
-    dot(vec(A, B), vec(A, B)) = dot((B[1] - A[1], B[2] - A[2]), (B[1] - A[1], B[2] - A[2]))
-    dot((B[1] - A[1], B[2] - A[2]), (B[1] - A[1], B[2] - A[2])) = (B[1] - A[1]) * (B[1] - A[1]) + ...
+    dot(vec(A, B), vec(A, B)) = dot((B(1) - A(1), B(2) - A(2)), (B(1) - A(1), B(2) - A(2)))
+    dot((B(1) - A(1), B(2) - A(2)), (B(1) - A(1), B(2) - A(2))) = (B(1) - A(1)) * (B(1) - A(1)) + ...
 ```
 
 **Another example:**
 ```litex
-# Seed library has: have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
+# Seed library has: have fn det(u, v cart(R, R)) R = u(1) * v(2) - u(2) * v(1)
 
 thm det_antisymmetric:
     ? forall u, v cart(R, R):
         det(v, u) = -det(u, v)
-    det(u, v) = u[1] * v[2] - u[2] * v[1]    # ← Declare det definition first
-    det(v, u) = v[1] * u[2] - v[2] * u[1]    # ← Also declare reversed form
-    v[1] * u[2] - v[2] * u[1] = -(u[1] * v[2] - u[2] * v[1])
-    -(u[1] * v[2] - u[2] * v[1]) = -det(u, v)
+    det(u, v) = u(1) * v(2) - u(2) * v(1)    # ← Declare det definition first
+    det(v, u) = v(1) * u(2) - v(2) * u(1)    # ← Also declare reversed form
+    v(1) * u(2) - v(2) * u(1) = -(u(1) * v(2) - u(2) * v(1))
+    -(u(1) * v(2) - u(2) * v(1)) = -det(u, v)
 ```
 
 **Reason:**
@@ -483,7 +483,7 @@ thm is_collinear_symmetric:
 ❌ Don't use Python/Lean style:
 ```litex
 def vec(A, B: cart(R, R)) -> cart(R, R):  # Error!
-    return (B[1] - A[1], B[2] - A[2])
+    return (B(1) - A(1), B(2) - A(2))
 ```
 
 ❌ Don't use tactic-style proofs:
@@ -509,7 +509,7 @@ thm name: ? forall x. P(x)  # Error! Must have proof body
 
 ✅ Correct LiteX style:
 ```litex
-have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
 
 thm name:
     ? forall x Type:
@@ -555,9 +555,9 @@ thm parallel_transitive:
         =>:
             $is_parallel(a, b, x, y)
     # Expand all definitions
-    vec(a, b) = (b[1] - a[1], b[2] - a[2])
-    vec(c, d) = (d[1] - c[1], d[2] - c[2])
-    vec(x, y) = (y[1] - x[1], y[2] - x[2])
+    vec(a, b) = (b(1) - a(1), b(2) - a(2))
+    vec(c, d) = (d(1) - c(1), d(2) - c(2))
+    vec(x, y) = (y(1) - x(1), y(2) - x(2))
     
     # Construct auxiliary term: det * distance_sq (can be algebraically expanded)
     det(vec(a, b), vec(x, y)) * distance_sq(c, d) = ...(long algebraic expansion)...
@@ -579,9 +579,9 @@ det(vec(p, r), vec(p, q)) = -det(vec(p, q), vec(p, r))  # ❌ chain fact unknown
 
 **Solution**: Break large steps into smaller steps, explicitly expand intermediate algebraic operations:
 ```litex
-det(vec(p, r), vec(p, q)) = vec(p, r)[1] * vec(p, q)[2] - vec(p, r)[2] * vec(p, q)[1]
-vec(p, r)[1] * vec(p, q)[2] - vec(p, r)[2] * vec(p, q)[1] = -(vec(p, q)[1] * vec(p, r)[2] - vec(p, q)[2] * vec(p, r)[1])
--(vec(p, q)[1] * vec(p, r)[2] - vec(p, q)[2] * vec(p, r)[1]) = -det(vec(p, q), vec(p, r))
+det(vec(p, r), vec(p, q)) = vec(p, r)(1) * vec(p, q)(2) - vec(p, r)(2) * vec(p, q)(1)
+vec(p, r)(1) * vec(p, q)(2) - vec(p, r)(2) * vec(p, q)(1) = -(vec(p, q)(1) * vec(p, r)(2) - vec(p, q)(2) * vec(p, r)(1))
+-(vec(p, q)(1) * vec(p, r)(2) - vec(p, q)(2) * vec(p, r)(1)) = -det(vec(p, q), vec(p, r))
 ```
 
 #### ParseError: name already active
@@ -638,8 +638,8 @@ prop is_midpoint(p, a, b cart(R, R)):
 
 # ✅ Convenient: coordinate average (expansion is just algebra)
 prop is_midpoint(p, a, b cart(R, R)):
-    p[1] = (a[1] + b[1]) / 2
-    p[2] = (a[2] + b[2]) / 2
+    p(1) = (a(1) + b(1)) / 2
+    p(2) = (a(2) + b(2)) / 2
 ```
 
 Principle: Definitions should serve the subsequent reasoning, not just “sound geometrically right”.
@@ -656,10 +656,10 @@ Typical pitfall (`point_difference_norm_pos`):
 
 ```litex
 # ❌ Mixing = and > in one step, and jump too large
-dot(vec(a, b), vec(a, b)) = (b[1]-a[1])*(b[1]-a[1]) + (b[2]-a[2])*(b[2]-a[2]) > 0
+dot(vec(a, b), vec(a, b)) = (b(1)-a(1))*(b(1)-a(1)) + (b(2)-a(2))*(b(2)-a(2)) > 0
 
 # ✅ First chain equations for expansion, write positivity separately, align with x^2 / sum of squares
-#    Writing goal as (b[1]-a[1])^2 + (b[2]-a[2])^2 > 0 is often smoother
+#    Writing goal as (b(1)-a(1))^2 + (b(2)-a(2))^2 > 0 is often smoother
 ```
 
 ### 9.4 Build framework first, use axiom when stuck, then fill in gradually
@@ -674,7 +674,7 @@ axiom point_difference_norm_pos:
     ? forall a, b cart(R, R):
         a != b
         =>:
-            (b[1] - a[1])^2 + (b[2] - a[2])^2 > 0
+            (b(1) - a(1))^2 + (b(2) - a(2))^2 > 0
 ```
 
 Principles:
@@ -735,9 +735,9 @@ Points are coordinate pairs; `vec` transforms two points into a vector; `dot` tr
 ```litex
 have points set = cart(R, R)
 
-have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
-have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
-have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
+have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
+have fn dot(u, v cart(R, R)) R = u(1) * v(1) + u(2) * v(2)
+have fn det(u, v cart(R, R)) R = u(1) * v(2) - u(2) * v(1)
 ```
 
 ### 10.2 Relations: is_collinear
@@ -755,8 +755,8 @@ Even with collinearity, don't pile up complexity; for midpoint use coordinate av
 
 ```litex
 prop is_midpoint(p, a, b cart(R, R)):
-    p[1] = (a[1] + b[1]) / 2
-    p[2] = (a[2] + b[2]) / 2
+    p(1) = (a(1) + b(1)) / 2
+    p(2) = (a(2) + b(2)) / 2
 ```
 
 ### 10.4 Summary
@@ -803,4 +803,4 @@ Motto: For positivity, first expand to `dx^2 + dy^2`; **don't** write `=` and `>
 |------|------|
 | Weaken | `a < b` ⇒ `a <= b` |
 | Non-negative sum | `0 <= a`, `0 <= b` ⇒ `0 <= a + b` |
-| Components ⇒ point equality | `a[1] = b[1]`, `a[2] = b[2]` ⇒ `a = b` |
+| Components ⇒ point equality | `a(1) = b(1)`, `a(2) = b(2)` ⇒ `a = b` |

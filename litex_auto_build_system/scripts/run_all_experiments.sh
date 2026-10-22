@@ -80,7 +80,7 @@ echo -e "   ✅ openai library installed"
 echo -e "${GREEN}[3/5] Checking Litex compiler...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-LITEX_BIN="$PROJECT_ROOT/../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex"
+LITEX_BIN="$PROJECT_ROOT/../LitexGeo/golitex/target/release/litex"
 if [ ! -f "$LITEX_BIN" ]; then
     echo -e "${RED}❌ Litex compiler not found: $LITEX_BIN${NC}"
     exit 1

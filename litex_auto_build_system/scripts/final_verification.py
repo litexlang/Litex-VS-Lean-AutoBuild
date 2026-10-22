@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Set environment variables (using relative path)
 script_dir = Path(__file__).resolve().parent
-litex_bin = script_dir.parent.parent / "LitexGeo" / "golitex" / "litex_0.9.116-beta_darwin_arm64" / "litex"
+litex_bin = script_dir.parent.parent / "LitexGeo" / "golitex" / "target" / "release" / "litex"
 os.environ["LITEX_BIN"] = str(litex_bin)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

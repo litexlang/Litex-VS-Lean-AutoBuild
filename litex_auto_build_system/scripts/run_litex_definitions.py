@@ -64,7 +64,7 @@ LITEX_TASKS = [
         id="1.1",
         stage=1,
         name="Define vec function",
-        description="Define the vector from point A to point B, using coordinate differences (B[1]-A[1], B[2]-A[2]) to represent the directed line segment between two points in the plane.",
+        description="Define the vector from point A to point B, using coordinate differences (B(1)-A(1), B(2)-A(2)) to represent the directed line segment between two points in the plane.",
         task_type="definition",
         hints=[]
     ),
@@ -72,7 +72,7 @@ LITEX_TASKS = [
         id="1.2",
         stage=1,
         name="Define dot function",
-        description="Define the dot product (inner product) of two vectors, computing u[1]*v[1] + u[2]*v[2], used to measure the projection relationship between vectors and the cosine of their angle.",
+        description="Define the dot product (inner product) of two vectors, computing u(1)*v(1) + u(2)*v(2), used to measure the projection relationship between vectors and the cosine of their angle.",
         task_type="definition",
         hints=[]
     ),
@@ -80,7 +80,7 @@ LITEX_TASKS = [
         id="1.3",
         stage=1,
         name="Define det function",
-        description="Define the determinant of two vectors (scalar part of the cross product), computing u[1]*v[2] - u[2]*v[1], used to determine the relative orientation of vectors and area.",
+        description="Define the determinant of two vectors (scalar part of the cross product), computing u(1)*v(2) - u(2)*v(1), used to determine the relative orientation of vectors and area.",
         task_type="definition",
         hints=[]
     ),
@@ -605,7 +605,7 @@ please fix your code based on error information and short guide。only output co
 
                 # automatic validation
                 print("🤖 auto-validating...")
-                is_valid, compiler_output = self.validator.validate(
+                is_valid, compiler_output, raw_result = self.validator.validate(
                     extracted_code,
                     self.get_library_context()
                 )

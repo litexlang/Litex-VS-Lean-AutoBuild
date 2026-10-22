@@ -15,7 +15,7 @@
 
 ### Obtaining the Litex Compiler
 
-**Important**: This project uses the Litex 0.9.116-beta compiler. Because the compiler is large, it is not included in the git repository and must be obtained separately.
+**Important**: This project uses the Litex 1.1.2-beta compiler. Because the compiler is large, it is not included in the git repository and must be obtained separately.
 
 #### How to Obtain
 
@@ -23,24 +23,21 @@
 ```bash
 # Visit the Litex official repository to get the latest version
 # https://github.com/litexlang/litex/releases
-# Download the version for your platform (darwin_arm64/darwin_amd64/linux/windows)
 ```
 
 **Method 2: Verify the in-project version (if already downloaded)**
 ```bash
 # Check whether the compiler exists
-ls -lh /path/to/auto-build/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
+ls -lh /path/to/auto-build/LitexGeo/golitex/target/release/litex
 
 # Test the compiler
-/path/to/auto-build/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex --version
-# Should display: Litex 0.9.116-beta
+/path/to/auto-build/LitexGeo/golitex/target/release/litex --version
+# Should display: Litex 1.1.2-beta
 ```
 
 **Compiler location**:
-- Used by this project: `../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex`
-- macOS M1/M2: `darwin_arm64`
-- macOS Intel: `darwin_amd64`
-- For other platforms, please choose the corresponding version
+- Used by this project: `../LitexGeo/golitex/target/release/litex`
+- This is a universal build (no platform-specific versions)
 
 ---
 
@@ -135,19 +132,20 @@ bash scripts/run_all_experiments.sh --thm-only
 #### Test mode
 ```bash
 # Definition experiment (5 tasks)
-python3 scripts/run_litex_definitions.py 5
+# Note: Disable proxy if using DeepSeek API
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_definitions.py 5
 
 # Theorem experiment (5 tasks)
-python3 scripts/run_litex_theorems.py 5
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_theorems.py 5
 ```
 
 #### Full run
 ```bash
 # Definition experiment (all 39 tasks)
-python3 scripts/run_litex_definitions.py
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_definitions.py
 
 # Theorem experiment (all 165 tasks)
-python3 scripts/run_litex_theorems.py
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_theorems.py
 ```
 
 ### Method 3: Parallel execution
@@ -155,14 +153,15 @@ python3 scripts/run_litex_theorems.py
 The Definition and Theorem experiments use independent seed libraries and can be run in parallel to save time:
 
 ```bash
-# Set the environment variable
-export LITEX_BIN="../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex"
-
 # Run tests in parallel (5 tasks)
-python3 scripts/run_litex_definitions.py 5 & python3 scripts/run_litex_theorems.py 5 & wait
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_definitions.py 5 & \
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_theorems.py 5 & \
+wait
 
 # Run full experiments in parallel
-python3 scripts/run_litex_definitions.py & python3 scripts/run_litex_theorems.py & wait
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_definitions.py & \
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_theorems.py & \
+wait
 ```
 
 **Advantages**:
@@ -170,7 +169,9 @@ python3 scripts/run_litex_definitions.py & python3 scripts/run_litex_theorems.py
 - ✅ Independent seed libraries, no mutual interference
 - ✅ Automatically waits for both experiments to complete
 
-**Note**: When running in parallel, console logs will be interleaved. To view separate logs, check the `experiment.log` file in the output directory.
+**Note**: 
+- When running in parallel, console logs will be interleaved. To view separate logs, check the `experiment.log` file in the output directory.
+- If using DeepSeek API, always use `env -u http_proxy -u https_proxy -u all_proxy` to disable proxy
 
 ---
 
@@ -251,24 +252,18 @@ cp config/api_config.example.json config/api_config.json
 **Solution**:
 ```bash
 # 1. Check whether the compiler file exists
-ls -lh ../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
+ls -lh ../LitexGeo/golitex/target/release/litex
 
 # 2. If it does not exist, obtain it from the Litex official repository
 # https://github.com/litexlang/litex/releases
-# Download the litex_0.9.116-beta version for the corresponding platform
+# Download the litex_1.1.2-beta version
 
 # 3. Set the environment variable to point to the correct path
-export LITEX_BIN="/path/to/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex"
+export LITEX_BIN="/path/to/LitexGeo/golitex/target/release/litex"
 
 # 4. Test the compiler
-$LITEX_BIN --version  # Should display Litex 0.9.116-beta
+$LITEX_BIN --version  # Should display Litex 1.1.2-beta
 ```
-
-**Note**: Different platforms use different versions:
-- macOS M1/M2: `litex_0.9.116-beta_darwin_arm64`
-- macOS Intel: `litex_0.9.116-beta_darwin_amd64`
-- Linux: `litex_0.9.116-beta_linux_*`
-- Windows: `litex_0.9.116-beta_windows_*`
 
 ### Q4: How to switch to the OpenAI API
 
@@ -314,6 +309,28 @@ ls -t | tail -n +2 | xargs rm -rf
 
 **Warning**: Please confirm you do not need this data before deleting!
 
+### Q8: SOCKS proxy error when calling DeepSeek API
+
+**Cause**: Environment proxy settings interfere with DeepSeek API calls
+
+**Solution**: Disable proxy when running experiments
+```bash
+env -u http_proxy -u https_proxy -u all_proxy python3 scripts/run_litex_definitions.py 5
+```
+
+### Q9: Syntax errors with coordinate access
+
+**Cause**: Litex 1.1.2-beta uses new syntax for coordinate access
+
+**Solution**: Use `(1)`, `(2)` instead of `[1]`, `[2]`
+```litex
+# Correct (Litex 1.1.2-beta)
+have fn vec(A, B cart(R, R)) cart(R, R) = (B(1) - A(1), B(2) - A(2))
+
+# Wrong (old syntax)
+have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
+```
+
 ---
 
 ## 📚 More Documentation
@@ -345,10 +362,10 @@ This closed-loop system can automatically correct errors and continuously improv
 ```bash
 # Full workflow (first run)
 # 1. Obtain the Litex compiler (if you don't have it yet)
-# Download litex_0.9.116-beta from https://github.com/litexlang/litex/releases
+# Download litex_1.1.2-beta from https://github.com/litexlang/litex/releases
 
 # 2. Verify the compiler
-ls -lh ../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
+ls -lh ../LitexGeo/golitex/target/release/litex
 
 # 3. Configure the API
 cp config/api_config.example.json config/api_config.json
@@ -357,10 +374,10 @@ vim config/api_config.json                    # Fill in the API key
 # 4. Verify the environment
 python3 scripts/final_verification.py
 
-# 5. Test run
-bash scripts/run_all_experiments.sh --test
+# 5. Test run (disable proxy if using DeepSeek)
+env -u http_proxy -u https_proxy -u all_proxy bash scripts/run_all_experiments.sh --test
 
 # Full workflow (already configured)
 python3 scripts/final_verification.py         # Verify the environment
-bash scripts/run_all_experiments.sh           # Full run
+env -u http_proxy -u https_proxy -u all_proxy bash scripts/run_all_experiments.sh           # Full run
 ```
