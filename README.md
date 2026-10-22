@@ -1,53 +1,53 @@
-# Litex & Lean 自动构建实验系统
+# Litex & Lean Auto-Build Experiment Systems
 
-本仓库包含两个AI驱动的几何库自动构建实验系统：**LitexGeo**和**LeanGeo**。
+This repository contains two AI-driven geometry library auto-build experiment systems: **LitexGeo** and **LeanGeo**.
 
-## 📊 实验概述
+## 📊 Experiment Overview
 
-两个系统都旨在通过AI自动生成几何库的定义和定理，并通过各自的编译器进行实时验证。
+Both systems aim to automatically generate geometry library definitions and theorems through AI, with real-time verification by their respective compilers.
 
-### 实验任务
+### Experiment Tasks
 
-| 类型 | 任务描述 | 数量 |
-|------|---------|------|
-| **Definition** | 定义几何基础函数和谓词 | 39个 |
-| **Theorem** | 证明几何定理 | 165个 |
+| Type | Task Description | Count |
+|------|-----------------|-------|
+| **Definition** | Define geometric basic functions and predicates | 39 |
+| **Theorem** | Prove geometric theorems | 165 |
 
-**Definition任务示例**：
-- 定义向量运算（vec、dot、det）
-- 定义距离和角度函数
-- 定义几何对象（line、circle、triangle）
-- 定义几何谓词（平行、垂直、共线等）
+**Definition Task Examples**:
+- Define vector operations (vec, dot, det)
+- Define distance and angle functions
+- Define geometric objects (line, circle, triangle)
+- Define geometric predicates (parallel, perpendicular, collinear, etc.)
 
-**Theorem任务示例**：
-- 向量运算性质（交换律、分配律）
-- 几何关系定理（三角形内角和、勾股定理）
-- 点、线、圆的位置关系定理
+**Theorem Task Examples**:
+- Vector operation properties (commutativity, distributivity)
+- Geometric relation theorems (triangle angle sum, Pythagorean theorem)
+- Point, line, circle position relationship theorems
 
-## 🎯 实验结果
+## 🎯 Experiment Results
 
-### Litex系统
+### Litex System
 
-#### Definition实验
+#### Definition Experiment
 
-**Litex代码示例**：
+**Litex Code Example**:
 
 ```litex
-# 定义两点间距离的平方
+# Define squared distance between two points
 have fn distance_sq(A, B cart(R, R)) R = 
   let v = vec(A, B) in dot(v, v)
 
-# 定义直线（一般式方程）
+# Define line (general form equation)
 have fn line(a, b, c R) set = 
   {p cart(R, R) | a * p[1] + b * p[2] + c = 0}
 ```
 
-#### Theorem实验
+#### Theorem Experiment
 
-**Litex证明示例**：
+**Litex Proof Example**:
 
 ```litex
-# 向量点积交换律
+# Vector dot product commutativity
 thm dot_comm(u, v cart(R, R)) : dot(u, v) = dot(v, u)
 proof:
   calc:
@@ -58,178 +58,175 @@ proof:
 qed
 ```
 
-### 
+## ⚖️ System Feature Comparison
 
-## ⚖️ 系统特性对比
+### Compiler and Language
 
-### 编译器和语言
+| Feature | Litex | Lean |
+|---------|-------|------|
+| Compiler | Litex 0.9.116-beta | Lean 4.35.0 |
+| Language Paradigm | Declarative, natural language style | Functional, dependent types |
+| Proof Style | calc chain reasoning | tactic proofs |
 
-| 特性 | Litex | Lean |
-|------|-------|------|
-| 编译器 | Litex 0.9.116-beta | Lean 4.35.0 |
-| 语言范式 | 声明式，自然语言风格 | 函数式，依赖类型 |
-| 证明风格 | calc链式推理 | tactic证明 |
+**Litex Advantages**:
+- ✅ **Natural Language Style**: Syntax close to math textbooks, easy to understand
+- ✅ **Concise Proofs**: calc style is intuitive, suitable for geometric reasoning
+- ✅ **Rapid Prototyping**: No complex type annotations needed, quick verification
 
-**Litex优势**：
-- ✅ **自然语言风格**：语法接近数学教科书，易于理解
-- ✅ **简洁的证明**：calc风格直观，适合几何推理
-- ✅ **快速原型**：无需复杂类型标注，快速验证想法
+### Verification Method
 
-### 验证方式
+| Feature | Litex | Lean |
+|---------|-------|------|
+| Verification Mode | Session protocol | REPL (via lake env) |
+| Incremental Compilation | ✅ Supported | ✅ Supported |
+| Compilation Speed | Fast | Slow (first time requires loading Mathlib) |
 
-| 特性 | Litex | Lean |
-|------|-------|------|
-| 验证模式 | Session协议 | REPL（通过lake env） |
-| 增量编译 | ✅ 支持 | ✅ 支持 |
-| 编译速度 | 快 | 慢（首次需加载Mathlib） |
+### Standard Library
 
-### 标准库
+| Feature | Litex | Lean |
+|---------|-------|------|
+| Standard Library | None (build from scratch) | Mathlib (~300MB) |
+| Real Number Operations | Manually defined | Ready-made (Real type) |
+| Geometry Library | Completely self-built | Partially available |
 
-| 特性 | Litex | Lean |
-|------|-------|------|
-| 标准库 | 无（从零构建）| Mathlib（~300MB）|
-| 实数运算 | 手动定义 | 现成（Real类型）|
-| 几何库 | 完全自建 | 部分现成 |
+### Development Experience
 
-### 开发体验
+| Feature | Litex | Lean |
+|---------|-------|------|
+| Installation | Download binary and use | Need to install elan + download Mathlib |
 
-| 特性 | Litex | Lean |
-|------|-------|------|
-| 安装 | 下载二进制即用 | 需安装elan + 下载Mathlib |
+### Performance Comparison
 
-### 性能对比
+#### Definition Experiment (39 tasks)
 
-#### Definition实验（39个任务）
+| Metric | Litex | Lean |
+|--------|-------|------|
+| Total Time | 37.8 min | 10.3 min |
+| Token Consumption | 0.56M | 0.44M |
+| Success Rate | 100% | 100% |
 
-| 指标 | Litex | Lean |
-|------|-------|-------------|
-| 总耗时 | 37.8 min | 10.3 min |
-| Token消耗 | 0.56M    | 0.44M |
-| 成功率 | 100% | 100% |
+#### Theorem Experiment (165 tasks)
 
-#### Theorem实验（165个任务）
+| Metric | Litex | Lean |
+|--------|-------|------|
+| Total Time | 280.8 min | 638.9 min |
+| Token Consumption | 11.5M | 10.5M |
+| Success Rate | 90.8% | 70% |
 
-| 指标 | Litex | Lean |
-|------|-------|-------------|
-| 总耗时 | 280.8 min | 638.9 min |
-| Token消耗 | 11.5M | 10.5M |
-| 成功率 | 90.8% | 70% |
+### Overall Rating
 
-### 综合评分
-
-| 维度 | Litex | Lean |
-|------|-------|------|
-| **易用性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **严谨性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **学习曲线** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| **编译速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **表达能力** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Dimension | Litex | Lean |
+|-----------|-------|------|
+| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Rigor** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Learning Curve** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| **Compilation Speed** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Expressiveness** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### Litex系统
+### Litex System
 
 ```bash
-# 1. 获取编译器
-# 从 https://github.com/litexlang/litex/releases 
-# 下载 litex_0.9.116-beta
-# 解压到 LitexGeo/golitex/ 目录
+# 1. Get the compiler
+# Download litex_0.9.116-beta from https://github.com/litexlang/litex/releases
+# Extract to LitexGeo/golitex/ directory
 
-# 2. 配置API
+# 2. Configure API
 cd litex_auto_build_system
 cp config/api_config.example.json config/api_config.json
-vim config/api_config.json  # 填入API密钥
+vim config/api_config.json  # Fill in API key
 
-# 3. 运行实验（测试模式：前3个任务）
+# 3. Run experiment (test mode: first 3 tasks)
 bash scripts/run_all_experiments.sh --test
 
-# 4. 完整运行（所有204个任务）
+# 4. Full run (all 204 tasks)
 bash scripts/run_all_experiments.sh
 ```
 
-### Lean系统
+### Lean System
 
 ```bash
-# 1. 安装Lean
+# 1. Install Lean
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 source ~/.zshrc
 
-# 2. 构建项目（下载Mathlib，首次需5-10分钟）
+# 2. Build project (download Mathlib, first time takes 5-10 minutes)
 cd LeanGeo
 lake build
 
-# 3. 配置API
+# 3. Configure API
 cd ../lean_auto_build_system
 cp config/api_config.example.json config/api_config.json
-vim config/api_config.json  # 填入API密钥
+vim config/api_config.json  # Fill in API key
 
-# 4. 运行实验（测试模式：前3个任务）
+# 4. Run experiment (test mode: first 3 tasks)
 bash scripts/run_all_experiments.sh --test
 
-# 5. 完整运行（所有204个任务）
+# 5. Full run (all 204 tasks)
 bash scripts/run_all_experiments.sh
 ```
 
-## 📁 目录结构
+## 📁 Directory Structure
 
 ```
 auto-build/
 │
-├── README.md                          # 本文件
+├── README.md                          # This file
 │
-├── litex_auto_build_system/          # Litex实验系统
-│   ├── scripts/                      # 实验脚本
-│   ├── config/                       # API配置
-│   ├── database/                     # 种子库
-│   ├── README.md                     # 详细说明
-│   └── USAGE_GUIDE.md               # 使用指南
+├── litex_auto_build_system/          # Litex experiment system
+│   ├── scripts/                      # Experiment scripts
+│   ├── config/                       # API configuration
+│   ├── database/                     # Seed library
+│   ├── README.md                     # Detailed documentation
+│   └── USAGE_GUIDE.md               # Usage guide
 │
-├── lean_auto_build_system/           # Lean实验系统
-│   ├── scripts/                      # 实验脚本
-│   ├── config/                       # API配置
-│   ├── prompts/                      # 语法指南
-│   ├── README.md                     # 详细说明
-│   └── USAGE_GUIDE.md               # 使用指南
+├── lean_auto_build_system/           # Lean experiment system
+│   ├── scripts/                      # Experiment scripts
+│   ├── config/                       # API configuration
+│   ├── prompts/                      # Syntax guide
+│   ├── README.md                     # Detailed documentation
+│   └── USAGE_GUIDE.md               # Usage guide
 │
-├── LitexGeo/                         # Litex编译器目录（需单独获取）
-│   └── README.md                     # 获取说明
+├── LitexGeo/                         # Litex compiler directory (obtain separately)
+│   └── README.md                     # Acquisition instructions
 │
-└── LeanGeo/                          # Lean项目目录（需单独构建）
-    └── README.md                     # 构建说明
+└── LeanGeo/                          # Lean project directory (build separately)
+    └── README.md                     # Build instructions
 ```
 
-## ⚠️ 首次克隆后需要
+## ⚠️ After First Clone
 
-### 1. 获取Litex编译器（未包含在仓库中）
-- 从 https://github.com/litexlang/litex/releases 下载
-- 版本：`litex_0.9.116-beta`
-- 放置在：`LitexGeo/golitex/litex_0.9.116-beta_<platform>/litex`
+### 1. Get Litex Compiler (not included in repository)
+- Download from https://github.com/litexlang/litex/releases
+- Version: `litex_0.9.116-beta`
+- Place at: `LitexGeo/golitex/litex_0.9.116-beta_<platform>/litex`
 
-### 2. 安装Lean环境（未包含在仓库中）
+### 2. Install Lean Environment (not included in repository)
 ```bash
-# 安装Lean
+# Install Lean
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 
-# 构建项目（下载Mathlib）
+# Build project (download Mathlib)
 cd LeanGeo && lake build
 ```
 
-### 3. 配置API密钥
-两个系统都需要：
+### 3. Configure API Keys
+Both systems require:
 ```bash
-# 进入对应系统目录
-cd litex_auto_build_system  # 或 lean_auto_build_system
+# Enter corresponding system directory
+cd litex_auto_build_system  # or lean_auto_build_system
 
-# 复制配置模板
+# Copy configuration template
 cp config/api_config.example.json config/api_config.json
 
-# 编辑配置，填入API密钥
+# Edit configuration, fill in API key
 vim config/api_config.json
 ```
 
-配置格式：
+Configuration format:
 ```json
 {
   "api_key": "your-actual-api-key",
@@ -238,70 +235,69 @@ vim config/api_config.json
 }
 ```
 
-## 📊 实验输出
+## 📊 Experiment Output
 
-运行后会在各自系统的输出目录生成：
+After running, the following will be generated in each system's output directory:
 
 ```
 *_auto_validated_250tasks/
 ├── definitions_only/
 │   └── run_YYYYMMDD_HHMMSS/
-│       ├── experiment.log           # 完整运行日志
-│       ├── library_final.*          # 生成的完整库
-│       ├── attempts.json            # 所有尝试记录
-│       └── state.json               # 实验状态
+│       ├── experiment.log           # Complete run log
+│       ├── library_final.*          # Generated complete library
+│       ├── attempts.json            # All attempt records
+│       └── state.json               # Experiment state
 │
 └── theorems_only/
     └── run_YYYYMMDD_HHMMSS/
         ├── experiment.log
         ├── library_final.*
         ├── attempts.json
-        ├── axioms_debt.md           # Axiom债务清单
+        ├── axioms_debt.md           # Axiom debt list
         └── state.json
 ```
 
-## 🎯 运行选项
+## 🎯 Run Options
 
-### 测试模式
+### Test Mode
 ```bash
 bash scripts/run_all_experiments.sh --test
-# 每个实验只运行前3个任务，快速验证环境
+# Each experiment runs only the first 3 tasks, quick environment verification
 ```
 
-### 完整模式
+### Full Mode
 ```bash
 bash scripts/run_all_experiments.sh
-# 运行所有任务（Definition: 39个 + Theorem: 165个）
+# Run all tasks (Definition: 39 + Theorem: 165)
 ```
 
-### 单独运行
+### Individual Run
 ```bash
-# 只运行Definition实验
+# Run only Definition experiment
 python3 scripts/run_*_definitions.py --max-tasks 10
 
-# 只运行Theorem实验  
+# Run only Theorem experiment  
 python3 scripts/run_*_theorems.py --max-tasks 10
 ```
 
-## 📖 文档索引
+## 📖 Documentation Index
 
-- **[litex_auto_build_system/README.md](litex_auto_build_system/README.md)** - Litex系统详细说明
-- **[litex_auto_build_system/USAGE_GUIDE.md](litex_auto_build_system/USAGE_GUIDE.md)** - Litex使用指南
-- **[lean_auto_build_system/README.md](lean_auto_build_system/README.md)** - Lean系统详细说明
-- **[lean_auto_build_system/USAGE_GUIDE.md](lean_auto_build_system/USAGE_GUIDE.md)** - Lean使用指南
+- **[litex_auto_build_system/README.md](litex_auto_build_system/README.md)** - Litex system detailed documentation
+- **[litex_auto_build_system/USAGE_GUIDE.md](litex_auto_build_system/USAGE_GUIDE.md)** - Litex usage guide
+- **[lean_auto_build_system/README.md](lean_auto_build_system/README.md)** - Lean system detailed documentation
+- **[lean_auto_build_system/USAGE_GUIDE.md](lean_auto_build_system/USAGE_GUIDE.md)** - Lean usage guide
 
-## 🔗 相关链接
+## 🔗 Related Links
 
 - **Litex**: https://github.com/litexlang/litex
 - **Lean**: https://leanprover.github.io/
 - **Mathlib**: https://leanprover-community.github.io/mathlib4_docs/
 
-## 📝 许可证
+## 📝 License
 
-请遵守各自编译器和库的许可证要求。
+Please comply with the license requirements of the respective compilers and libraries.
 
 ---
 
-**更新日期**: 2026-10-22  
-**系统版本**: Litex 0.9.116-beta, Lean 4.35.0
-
+**Last Updated**: 2026-10-22  
+**System Versions**: Litex 0.9.116-beta, Lean 4.35.0

@@ -1,83 +1,83 @@
-# LitexGeo 自动构建实验系统
+# LitexGeo Auto-Build Experiment System
 
-这是一个完整的LitexGeo几何库自动构建实验系统，使用AI代理自动生成定义和定理，并通过Litex编译器实时验证。
+This is a complete LitexGeo geometry library auto-build experiment system that uses AI agents to automatically generate definitions and theorems, with real-time verification by the Litex compiler.
 
-## 📁 目录结构
+## 📁 Directory Structure
 
 ```
 litex_auto_build_system/
-├── scripts/                          # 核心脚本
-│   ├── run_litex_definitions.py     # Definition实验脚本
-│   ├── run_litex_theorems.py        # Theorem实验脚本
-│   ├── litex_session.py             # Litex验证器
-│   ├── final_verification.py        # 环境验证脚本
-│   └── run_all_experiments.sh       # 一键运行脚本
-├── prompts/                          # Prompt文档
-│   └── litex_short_guide.md         # Litex语法指南
-├── config/                           # 配置文件
-│   ├── api_config.json              # API配置（需自己创建）
-│   ├── api_config.example.json      # API配置示例
-│   └── README.md                    # 配置说明
-├── database/                         # 种子库
-│   ├── definition_library_seed.lit  # Definition种子库
-│   └── theorem_library_seed.lit     # Theorem种子库
-├── litex_auto_validated_250tasks/   # 实验输出
-│   ├── definitions_only/            # Definition实验输出
-│   └── theorems_only/               # Theorem实验输出
-├── examples/                         # 示例输出
-│   ├── definitions_only/            # Definition示例
-│   └── theorems_only/               # Theorem示例
-└── README.md                         # 本文件
+├── scripts/                          # Core scripts
+│   ├── run_litex_definitions.py     # Definition experiment script
+│   ├── run_litex_theorems.py        # Theorem experiment script
+│   ├── litex_session.py             # Litex verifier
+│   ├── final_verification.py        # Environment verification script
+│   └── run_all_experiments.sh       # One-click run script
+├── prompts/                          # Prompt documents
+│   └── litex_short_guide.md         # Litex syntax guide
+├── config/                           # Configuration files
+│   ├── api_config.json              # API configuration (create yourself)
+│   ├── api_config.example.json      # API configuration example
+│   └── README.md                    # Configuration instructions
+├── database/                         # Seed library
+│   ├── definition_library_seed.lit  # Definition seed library
+│   └── theorem_library_seed.lit     # Theorem seed library
+├── litex_auto_validated_250tasks/   # Experiment output
+│   ├── definitions_only/            # Definition experiment output
+│   └── theorems_only/               # Theorem experiment output
+├── examples/                         # Example output
+│   ├── definitions_only/            # Definition examples
+│   └── theorems_only/               # Theorem examples
+└── README.md                         # This file
 ```
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 0. 获取Litex编译器（首次使用必须）
+### 0. Get Litex Compiler (Required for First Use)
 
-**重要**：本项目使用Litex 0.9.116-beta编译器。由于编译器体积较大，未包含在git仓库中，需要单独获取。
+**Important**: This project uses Litex 0.9.116-beta compiler. Due to its large size, it is not included in the git repository and needs to be obtained separately.
 
-#### Litex编译器位置
+#### Litex Compiler Location
 
-本项目使用的编译器位于：
+The compiler used by this project is located at:
 ```
 ../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
 ```
 
-#### 获取方式
+#### How to Obtain
 
-**方式1：从Litex官方仓库获取**
+**Method 1: Get from Litex Official Repository**
 ```bash
-# 访问Litex官方仓库获取最新版本
+# Visit Litex official repository for the latest version
 # https://github.com/litexlang/litex/releases
 ```
 
-**方式2：使用项目内已有版本（如果已下载）**
+**Method 2: Use Existing Version in Project (if already downloaded)**
 ```bash
-# 验证编译器是否存在
+# Verify compiler exists
 ls -lh /path/to/auto-build/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
 
-# 测试编译器
+# Test compiler
 /path/to/auto-build/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex --version
 ```
 
-**安装位置说明**：
-- Litex编译器：项目内 `../LitexGeo/golitex/litex_0.9.116-beta_*/`
-- 不同平台有不同版本：`darwin_arm64`（Mac M1/M2）、`darwin_amd64`（Mac Intel）等
-- 编译器是独立二进制文件，无需安装依赖
+**Installation Location Notes**:
+- Litex compiler: in project at `../LitexGeo/golitex/litex_0.9.116-beta_*/`
+- Different platforms have different versions: `darwin_arm64` (Mac M1/M2), `darwin_amd64` (Mac Intel), etc.
+- Compiler is a standalone binary, no dependencies required
 
-### 1. 配置API密钥（首次运行必须）
+### 1. Configure API Key (Required for First Run)
 
 ```bash
-cd cd litex_auto_build_system
+cd litex_auto_build_system
 
-# 复制API配置模板
+# Copy API configuration template
 cp config/api_config.example.json config/api_config.json
 
-# 编辑配置文件，填入你的API密钥
-# vim config/api_config.json 或使用其他编辑器
+# Edit configuration file, fill in your API key
+# vim config/api_config.json or use other editor
 ```
 
-配置文件格式：
+Configuration file format:
 ```json
 {
   "api_key": "your-actual-api-key-here",
@@ -86,163 +86,163 @@ cp config/api_config.example.json config/api_config.json
 }
 ```
 
-详细配置说明请查看：`config/README.md`
+For detailed configuration instructions, see: `config/README.md`
 
-### 1. 验证环境
+### 2. Verify Environment
 
 ```bash
-cd cd litex_auto_build_system
+cd litex_auto_build_system
 python3 scripts/final_verification.py
 ```
 
-### 2. 运行实验
+### 3. Run Experiments
 
-#### 一键运行（推荐）
+#### One-Click Run (Recommended)
 
 ```bash
-# 运行完整实验
+# Run complete experiments
 bash scripts/run_all_experiments.sh
 
-# 测试模式（每个实验只运行3个任务）
+# Test mode (run only 3 tasks per experiment)
 bash scripts/run_all_experiments.sh --test
 
-# 只运行Definition实验
+# Run only Definition experiment
 bash scripts/run_all_experiments.sh --def-only
 
-# 只运行Theorem实验
+# Run only Theorem experiment
 bash scripts/run_all_experiments.sh --thm-only
 ```
 
-#### 分别运行
+#### Run Separately
 
 ```bash
-# Definition实验（5个任务测试）
+# Definition experiment (test with 5 tasks)
 python3 scripts/run_litex_definitions.py 5
 
-# Theorem实验（5个任务测试）
+# Theorem experiment (test with 5 tasks)
 python3 scripts/run_litex_theorems.py 5
 
-# 完整运行
+# Full run
 python3 scripts/run_litex_definitions.py
 python3 scripts/run_litex_theorems.py
 ```
 
-#### 并行运行
+#### Parallel Run
 
 ```bash
-# 设置Litex编译器路径
+# Set Litex compiler path
 export LITEX_BIN="../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex"
 
-# 并行运行（5个任务测试）
+# Parallel run (test with 5 tasks)
 python3 scripts/run_litex_definitions.py 5 & python3 scripts/run_litex_theorems.py 5 & wait
 
-# 并行完整运行
+# Parallel full run
 python3 scripts/run_litex_definitions.py & python3 scripts/run_litex_theorems.py & wait
 ```
 
-## 📊 实验说明
+## 📊 Experiment Description
 
-### Definition实验
-- **种子库**: `database/definition_library_seed.lit` (309字节)
-- **任务数**: 39个定义任务
-- **输出目录**: `litex_auto_validated_250tasks/definitions_only/run_YYYYMMDD_HHMMSS/`
+### Definition Experiment
+- **Seed Library**: `database/definition_library_seed.lit` (309 bytes)
+- **Task Count**: 39 definition tasks
+- **Output Directory**: `litex_auto_validated_250tasks/definitions_only/run_YYYYMMDD_HHMMSS/`
 
-### Theorem实验
-- **种子库**: `database/theorem_library_seed.lit` (6.3KB)
-- **任务数**: 165个定理任务
-- **输出目录**: `litex_auto_validated_250tasks/theorems_only/run_YYYYMMDD_HHMMSS/`
+### Theorem Experiment
+- **Seed Library**: `database/theorem_library_seed.lit` (6.3KB)
+- **Task Count**: 165 theorem tasks
+- **Output Directory**: `litex_auto_validated_250tasks/theorems_only/run_YYYYMMDD_HHMMSS/`
 
-## 🔧 系统要求
+## 🔧 System Requirements
 
 - **Python**: 3.8+
-- **Python依赖**: `pip3 install openai`
-- **Litex编译器**: 0.9.116-beta（需单独获取，见"获取Litex编译器"章节）
-- **API密钥**: DeepSeek或其他兼容OpenAI API的服务
+- **Python Dependencies**: `pip3 install openai`
+- **Litex Compiler**: 0.9.116-beta (obtain separately, see "Get Litex Compiler" section)
+- **API Key**: DeepSeek or other OpenAI API compatible service
 
-**平台支持**：
+**Platform Support**:
 - macOS (Apple Silicon): `litex_0.9.116-beta_darwin_arm64`
 - macOS (Intel): `litex_0.9.116-beta_darwin_amd64`
 - Linux: `litex_0.9.116-beta_linux_*`
 - Windows: `litex_0.9.116-beta_windows_*`
 
-## 🔐 API配置
+## 🔐 API Configuration
 
-本系统使用外部配置文件管理API密钥，**不会**将密钥硬编码到代码中。
+This system uses external configuration files to manage API keys and **does not** hardcode keys into the code.
 
-配置步骤：
-1. 复制 `config/api_config.example.json` 为 `config/api_config.json`
-2. 编辑 `config/api_config.json`，填入你的API密钥
-3. `api_config.json` 已被 `.gitignore` 忽略，不会提交到git
+Configuration steps:
+1. Copy `config/api_config.example.json` to `config/api_config.json`
+2. Edit `config/api_config.json`, fill in your API key
+3. `api_config.json` is ignored by `.gitignore` and will not be committed to git
 
-详细说明：`config/README.md`
+Detailed instructions: `config/README.md`
 
-## 📝 输出文件
+## 📝 Output Files
 
-每次运行会在对应目录下创建带时间戳的子目录，包含：
+Each run creates a timestamped subdirectory in the corresponding directory, containing:
 
-| 文件 | 说明 |
-|------|------|
-| `experiment.log` | 完整的控制台日志 |
-| `experiment_log.md` | Markdown格式日志 |
-| `state.json` | 实验状态（已完成任务等） |
-| `library_final.lit` | 最终生成的完整库 |
-| `attempts.json` | 所有尝试的详细记录 |
-| `axioms_debt.md` | Axiom债务清单（仅Theorem） |
+| File | Description |
+|------|-------------|
+| `experiment.log` | Complete console log |
+| `experiment_log.md` | Markdown format log |
+| `state.json` | Experiment state (completed tasks, etc.) |
+| `library_final.lit` | Final generated complete library |
+| `attempts.json` | Detailed record of all attempts |
+| `axioms_debt.md` | Axiom debt list (Theorem only) |
 
-## 🎯 关键特性
+## 🎯 Key Features
 
-- ✅ **自动验证**: 使用Litex编译器session模式实时验证生成的代码
-- ✅ **智能错误反馈**: 编译错误自动格式化并反馈给AI进行修正（最多5次重试）
-- ✅ **完整语法指导**: 每次任务都包含25KB的Litex语法指南
-- ✅ **增量构建**: 从最小种子库开始逐步构建完整库
-- ✅ **独立实验**: Definition和Theorem使用独立种子库，可并行运行
-- ✅ **时间戳输出**: 每次运行创建新目录，不会覆盖旧结果
-- ✅ **完整记录**: 保存所有尝试、token使用、耗时等信息
-- ✅ **API配置外置**: 密钥存储在配置文件，不硬编码到代码中
+- ✅ **Automatic Verification**: Real-time verification of generated code using Litex compiler session mode
+- ✅ **Smart Error Feedback**: Compilation errors automatically formatted and fed back to AI for correction (max 5 retries)
+- ✅ **Complete Syntax Guidance**: Each task includes 25KB Litex syntax guide
+- ✅ **Incremental Build**: Build complete library progressively from minimal seed library
+- ✅ **Independent Experiments**: Definition and Theorem use separate seed libraries, can run in parallel
+- ✅ **Timestamped Output**: Each run creates new directory, won't overwrite old results
+- ✅ **Complete Records**: Save all attempts, token usage, time consumption, etc.
+- ✅ **External API Configuration**: Keys stored in configuration file, not hardcoded
 
-## 📖 相关文档
+## 📖 Related Documentation
 
-- **系统对比**: 查看 `../LITEX_VS_LEAN_COMPARISON.md` 了解Litex与Lean系统的详细对比
-- **使用指南**: 查看 `USAGE_GUIDE.md` 了解详细使用方法
-- **API配置**: 查看 `config/README.md` 了解配置选项
-- **环境验证**: 运行 `python3 scripts/final_verification.py`
-- **脚本说明**: 查看 `SCRIPTS_EXPLANATION.md`
-- **Litex语法**: 查看 `prompts/litex_short_guide.md` (25KB完整指南)
-- **示例输出**: 查看 `examples/` 目录
+- **System Comparison**: See `../LITEX_VS_LEAN_COMPARISON.md` for detailed comparison between Litex and Lean systems
+- **Usage Guide**: See `USAGE_GUIDE.md` for detailed usage instructions
+- **API Configuration**: See `config/README.md` for configuration options
+- **Environment Verification**: Run `python3 scripts/final_verification.py`
+- **Script Explanation**: See `SCRIPTS_EXPLANATION.md`
+- **Litex Syntax**: See `prompts/litex_short_guide.md` (25KB complete guide)
+- **Example Output**: See `examples/` directory
 
-## 🔄 版本控制
+## 🔄 Version Control
 
-- **`.gitignore`**: 已配置忽略用户运行输出
-- **示例保留**: `examples/` 目录中的示例会被保留在git中
-- **用户输出**: `litex_auto_validated_250tasks/*/run_*/` 会被忽略
+- **`.gitignore`**: Configured to ignore user run output
+- **Example Retention**: Examples in `examples/` directory are kept in git
+- **User Output**: `litex_auto_validated_250tasks/*/run_*/` will be ignored
 
-## 📞 问题排查
+## 📞 Troubleshooting
 
-如遇到问题，请检查：
+If you encounter problems, please check:
 
-1. **Litex编译器**: 确认编译器存在且可执行
+1. **Litex Compiler**: Confirm compiler exists and is executable
    ```bash
-   # 检查编译器文件
+   # Check compiler file
    ls -lh ../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex
    
-   # 测试编译器
+   # Test compiler
    ../LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex --version
    
-   # 或设置环境变量
+   # Or set environment variable
    export LITEX_BIN="/path/to/LitexGeo/golitex/litex_0.9.116-beta_darwin_arm64/litex"
    ```
 
-2. **API配置**: 确认 `config/api_config.json` 存在且密钥有效
+2. **API Configuration**: Confirm `config/api_config.json` exists and key is valid
 
-3. **Python依赖**: 确认已安装 `openai` 库
+3. **Python Dependencies**: Confirm `openai` library is installed
    ```bash
    pip3 install openai
    ```
 
-4. **种子库文件**: 确认 `database/` 目录下的两个种子库文件完整
+4. **Seed Library Files**: Confirm both seed library files in `database/` directory are complete
    ```bash
    ls -lh database/definition_library_seed.lit
    ls -lh database/theorem_library_seed.lit
    ```
 
-5. **运行验证**: 执行 `python3 scripts/final_verification.py` 进行全面检查
+5. **Run Verification**: Execute `python3 scripts/final_verification.py` for comprehensive check

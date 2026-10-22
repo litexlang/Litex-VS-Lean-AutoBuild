@@ -1,390 +1,390 @@
-# LeanGeo 自动构建实验系统 - 使用指南
+# LeanGeo Automated Build Experiment System - User Guide
 
-## 📋 目录
+## 📋 Table of Contents
 
-1. [环境准备](#环境准备)
-2. [首次配置](#首次配置)
-3. [运行实验](#运行实验)
-4. [查看结果](#查看结果)
-5. [常见问题](#常见问题)
+1. [Environment Preparation](#environment-preparation)
+2. [Initial Configuration](#initial-configuration)
+3. [Running Experiments](#running-experiments)
+4. [Viewing Results](#viewing-results)
+5. [FAQ](#faq)
 
 ---
 
-## 环境准备
+## Environment Preparation
 
-### 1. 安装Lean 4和Lake
+### 1. Install Lean 4 and Lake
 
-**重要**：Lean 4编译器和Lake构建工具未包含在git仓库中，需要先安装。
+**Important**: The Lean 4 compiler and the Lake build tool are not included in the git repository and must be installed first.
 
-#### macOS/Linux安装
+#### macOS/Linux Installation
 
 ```bash
-# 安装elan（Lean版本管理器）
+# Install elan (Lean version manager)
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 
-# 重启终端或刷新环境
-source ~/.zshrc  # 如果使用zsh
-# 或
-source ~/.bashrc  # 如果使用bash
+# Restart the terminal or refresh the environment
+source ~/.zshrc  # if using zsh
+# or
+source ~/.bashrc  # if using bash
 
-# 验证安装
-elan --version    # 应该显示版本号
-lean --version    # 应该显示 Lean (version 4.x.x, ...)
-lake --version    # 应该显示版本号
+# Verify the installation
+elan --version    # should display the version number
+lean --version    # should display Lean (version 4.x.x, ...)
+lake --version    # should display the version number
 ```
 
-#### Windows安装
+#### Windows Installation
 
-1. 下载并安装：https://github.com/leanprover/elan/releases
-2. 或参考官方文档：https://leanprover-community.github.io/install/windows.html
+1. Download and install: https://github.com/leanprover/elan/releases
+2. Or refer to the official documentation: https://leanprover-community.github.io/install/windows.html
 
-#### 安装位置
+#### Installation Locations
 
-- **Lean编译器**：`~/.elan/toolchains/leanprover--lean4---v4.35.0/`
-- **Mathlib库**：项目的 `LeanGeo/.lake/packages/` 目录
-- **全局工具**：所有Lean项目共用同一个编译器
+- **Lean compiler**: `~/.elan/toolchains/leanprover--lean4---v4.35.0/`
+- **Mathlib library**: the project's `LeanGeo/.lake/packages/` directory
+- **Global tools**: All Lean projects share the same compiler
 
-### 2. 构建Lean项目（下载Mathlib）
+### 2. Build the Lean Project (download Mathlib)
 
 ```bash
-# 进入LeanGeo目录
+# Enter the LeanGeo directory
 cd /path/to/auto-build/LeanGeo
 
-# 构建项目（首次运行会下载Mathlib，约300MB）
+# Build the project (the first run downloads Mathlib, about 300MB)
 lake build
 ```
 
-**注意**：
-- 首次运行需要5-10分钟下载Mathlib
-- 需要稳定的网络连接
-- 下载完成后会自动编译，总共约10-15分钟
+**Notes**:
+- The first run takes 5-10 minutes to download Mathlib
+- A stable network connection is required
+- After the download completes, it compiles automatically, taking a total of about 10-15 minutes
 
 ---
 
-## 首次配置
+## Initial Configuration
 
-### 1. 配置API密钥
+### 1. Configure the API Key
 
-**必须在首次运行前完成！**
+**Must be completed before the first run!**
 
 ```bash
-# 进入项目目录
+# Enter the project directory
 cd /path/to/auto-build/lean_auto_build_system
 
-# 复制配置模板
+# Copy the configuration template
 cp config/api_config.example.json config/api_config.json
 
-# 编辑配置文件
+# Edit the configuration file
 vim config/api_config.json
-# 或使用其他编辑器：code config/api_config.json
+# Or use another editor: code config/api_config.json
 ```
 
-配置文件内容：
+Configuration file contents:
 ```json
 {
-  "api_key": "sk-你的实际密钥",
+  "api_key": "sk-your-actual-key",
   "base_url": "https://api.deepseek.com",
   "model": "deepseek-chat"
 }
 ```
 
-**安全提示**：
-- ✅ `api_config.json` 已被 `.gitignore` 忽略
-- ✅ 不会被提交到git仓库
-- ⚠️ 不要将此文件分享给他人
+**Security notes**:
+- ✅ `api_config.json` is ignored by `.gitignore`
+- ✅ It will not be committed to the git repository
+- ⚠️ Do not share this file with others
 
-详细配置说明：[config/README.md](config/README.md)
+Detailed configuration instructions: [config/README.md](config/README.md)
 
 ---
 
-## 运行实验
+## Running Experiments
 
-### 方式1：一键运行脚本（推荐）
+### Method 1: One-click run script (recommended)
 
-#### 测试模式（推荐首次运行）
+#### Test mode (recommended for first run)
 ```bash
 bash scripts/run_all_experiments.sh --test
 ```
-- 每个实验只运行3个任务
-- 预计耗时：20-30分钟
-- 适合验证系统是否正常工作
+- Each experiment runs only 3 tasks
+- Estimated time: 20-30 minutes
+- Suitable for verifying that the system works correctly
 
-#### 完整运行
+#### Full run
 ```bash
 bash scripts/run_all_experiments.sh
 ```
-- Definition实验：39个任务
-- Theorem实验：165个任务
-- 预计耗时：6-10小时
+- Definition experiment: 39 tasks
+- Theorem experiment: 165 tasks
+- Estimated time: 6-10 hours
 
-#### 单独运行
+#### Run separately
 ```bash
-# 只运行Definition实验
+# Run only the Definition experiment
 bash scripts/run_all_experiments.sh --def-only
 
-# 只运行Theorem实验
+# Run only the Theorem experiment
 bash scripts/run_all_experiments.sh --thm-only
 ```
 
-### 方式2：直接运行Python脚本
+### Method 2: Run the Python scripts directly
 
-#### 测试模式
+#### Test mode
 ```bash
-# Definition实验（5个任务）
+# Definition experiment (5 tasks)
 python3 scripts/run_lean_definitions.py 5
 
-# Theorem实验（5个任务）
+# Theorem experiment (5 tasks)
 python3 scripts/run_lean_theorems.py 5
 ```
 
-#### 完整运行
+#### Full run
 ```bash
-# Definition实验（所有39个任务）
+# Definition experiment (all 39 tasks)
 python3 scripts/run_lean_definitions.py
 
-# Theorem实验（所有165个任务）
+# Theorem experiment (all 165 tasks)
 python3 scripts/run_lean_theorems.py
 ```
 
-### 方式3：并行运行
+### Method 3: Parallel execution
 
-Definition和Theorem实验使用独立的种子库，可以并行运行以节省时间：
+The Definition and Theorem experiments use independent seed libraries and can be run in parallel to save time:
 
 ```bash
-# 并行运行测试（5个任务）
+# Run tests in parallel (5 tasks)
 python3 scripts/run_lean_definitions.py 5 & python3 scripts/run_lean_theorems.py 5 & wait
 
-# 并行完整运行
+# Run full experiments in parallel
 python3 scripts/run_lean_definitions.py & python3 scripts/run_lean_theorems.py & wait
 ```
 
-**优点**：
-- ✅ 节省时间，两个实验同时进行
-- ✅ 独立种子库，互不影响
-- ✅ 自动等待两个实验都完成
+**Advantages**:
+- ✅ Saves time by running both experiments simultaneously
+- ✅ Independent seed libraries, no mutual interference
+- ✅ Automatically waits for both experiments to complete
 
-**注意**：并行运行时，控制台日志会交织在一起。如需查看单独的日志，请查看输出目录中的 `experiment.log` 文件。
+**Note**: When running in parallel, console logs will be interleaved. To view separate logs, check the `experiment.log` file in the output directory.
 
 ---
 
-## 查看结果
+## Viewing Results
 
-### 输出目录结构
+### Output Directory Structure
 
 ```
 lean_auto_validated_250tasks/
 ├── definitions_only/
-│   └── run_20261021_230000/    # 时间戳目录
-│       ├── experiment.log      # 完整日志
-│       ├── library_final.lean  # 最终生成的库
-│       ├── state.json          # 实验状态
-│       └── attempts.json       # 所有尝试记录
+│   └── run_20261021_230000/    # Timestamped directory
+│       ├── experiment.log      # Complete log
+│       ├── library_final.lean  # Final generated library
+│       ├── state.json          # Experiment state
+│       └── attempts.json       # All attempt records
 └── theorems_only/
     └── run_20261021_230000/
         ├── experiment.log
         ├── library_final.lean
         ├── state.json
         ├── attempts.json
-        └── axioms_debt.md      # Axiom债务清单
+        └── axioms_debt.md      # Axiom debt list
 ```
 
-### 查看命令
+### Viewing Commands
 
 ```bash
-# 列出所有运行
+# List all runs
 ls -lt lean_auto_validated_250tasks/definitions_only/
 ls -lt lean_auto_validated_250tasks/theorems_only/
 
-# 查看最新的Definition实验日志
+# View the latest Definition experiment log
 tail -f lean_auto_validated_250tasks/definitions_only/run_*/experiment.log
 
-# 查看最新的Theorem实验日志
+# View the latest Theorem experiment log
 tail -f lean_auto_validated_250tasks/theorems_only/run_*/experiment.log
 
-# 查看生成的库
+# View the generated library
 cat lean_auto_validated_250tasks/definitions_only/run_*/library_final.lean
 cat lean_auto_validated_250tasks/theorems_only/run_*/library_final.lean
 ```
 
-### 输出文件说明
+### Output File Descriptions
 
-| 文件 | 说明 |
-|------|------|
-| `experiment.log` | 完整的控制台日志 |
-| `experiment_log.md` | Markdown格式日志 |
-| `state.json` | 实验状态（已完成任务等） |
-| `library_final.lean` | 最终生成的完整库 |
-| `attempts.json` | 所有尝试的详细记录（包含token统计） |
-| `axioms_debt.md` | Axiom债务清单（仅Theorem实验） |
+| File | Description |
+|------|-------------|
+| `experiment.log` | Complete console log |
+| `experiment_log.md` | Markdown-format log |
+| `state.json` | Experiment state (completed tasks, etc.) |
+| `library_final.lean` | Final complete generated library |
+| `attempts.json` | Detailed records of all attempts (including token statistics) |
+| `axioms_debt.md` | Axiom debt list (Theorem experiment only) |
 
 ---
 
-## 常见问题
+## FAQ
 
-### Q1: 提示 "lean: command not found"
+### Q1: "lean: command not found"
 
-**原因**：未安装Lean或环境变量未配置
+**Cause**: Lean is not installed or the environment variable is not configured
 
-**解决**：
+**Solution**:
 ```bash
-# 安装elan和Lean
+# Install elan and Lean
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 
-# 刷新环境
-source ~/.zshrc  # 或 source ~/.bashrc
+# Refresh the environment
+source ~/.zshrc  # or source ~/.bashrc
 
-# 验证安装
+# Verify the installation
 lean --version
 ```
 
-### Q2: 提示 "API配置文件不存在"
+### Q2: "API config file does not exist"
 
-**原因**：未创建 `config/api_config.json`
+**Cause**: `config/api_config.json` was not created
 
-**解决**：
+**Solution**:
 ```bash
 cp config/api_config.example.json config/api_config.json
-# 然后编辑文件填入API密钥
+# Then edit the file and fill in the API key
 ```
 
-### Q3: 提示 "请配置API密钥"
+### Q3: "Please configure the API key"
 
-**原因**：`api_config.json` 中的 `api_key` 仍然是 `"your-api-key-here"`
+**Cause**: The `api_key` in `api_config.json` is still `"your-api-key-here"`
 
-**解决**：编辑 `config/api_config.json`，填入真实的API密钥
+**Solution**: Edit `config/api_config.json` and fill in the real API key
 
-### Q4: 提示 "Unknown identifier `dot`"
+### Q4: "Unknown identifier `dot`"
 
-**原因**：种子库未正确加载
+**Cause**: The seed library was not loaded correctly
 
-**检查**：
+**Check**:
 ```bash
-# 确认种子库存在
+# Confirm the seed library exists
 ls -la ../LeanGeo/LeanGeoCore/theorem_library_seed.lean
 
-# 确认种子库内容正确（应该包含vec、dot、det定义）
+# Confirm the seed library content is correct (should include vec, dot, det definitions)
 head -20 ../LeanGeo/LeanGeoCore/theorem_library_seed.lean
 ```
 
-### Q5: Mathlib下载失败或超时
+### Q5: Mathlib download failed or timed out
 
-**原因**：网络问题或GitHub连接不稳定
+**Cause**: Network issues or unstable GitHub connection
 
-**解决**：
+**Solution**:
 ```bash
 cd ../LeanGeo
 
-# 清理缓存重试
+# Clear the cache and retry
 rm -rf .lake
 lake build
 
-# 或使用国内镜像（如果可用）
-# 具体配置请参考Lean社区文档
+# Or use a domestic mirror (if available)
+# For specific configuration, refer to the Lean community documentation
 ```
 
-### Q6: 想换用OpenAI API
+### Q6: How to switch to the OpenAI API
 
-**解决**：编辑 `config/api_config.json`：
+**Solution**: Edit `config/api_config.json`:
 ```json
 {
-  "api_key": "sk-你的OpenAI密钥",
+  "api_key": "sk-your-OpenAI-key",
   "base_url": "https://api.openai.com/v1",
   "model": "gpt-4"
 }
 ```
 
-### Q7: 实验运行中断了怎么办？
+### Q7: What if the experiment run is interrupted?
 
-**说明**：每次运行都会创建新的时间戳目录，可以直接重新运行，不会覆盖之前的结果。
+**Note**: Each run creates a new timestamped directory, so you can simply re-run without overwriting previous results.
 
-实验会自动跳过种子库中已有的定义，继续处理后续任务。
+The experiment automatically skips definitions already in the seed library and continues processing subsequent tasks.
 
-**建议**：
-- 如果是网络问题导致中断，直接重新运行即可
-- 如果是代码错误，检查日志文件了解失败原因
-- 每次运行的完整日志都保存在 `experiment.log` 中
+**Suggestions**:
+- If interrupted due to network issues, simply re-run
+- If due to a code error, check the log file to understand the cause of failure
+- The complete log of each run is saved in `experiment.log`
 
-### Q8: 如何查看token使用统计？
+### Q8: How to view token usage statistics?
 
-**解决**：查看 `attempts.json` 文件：
+**Solution**: View the `attempts.json` file:
 ```bash
-# 需要安装jq工具
+# Requires the jq tool to be installed
 cat lean_auto_validated_250tasks/definitions_only/run_*/attempts.json | jq '.[] | {task_id, total_tokens}'
 ```
 
-### Q9: Lean编译很慢怎么办？
+### Q9: What if Lean compilation is very slow?
 
-**说明**：首次构建Mathlib确实需要10-15分钟，这是正常的。
+**Note**: The first build of Mathlib does take 10-15 minutes, which is normal.
 
-**优化**：
+**Optimization**:
 ```bash
-# 使用多核编译（例如8核）
+# Use multi-core compilation (e.g., 8 cores)
 cd ../LeanGeo
 lake build -j8
 ```
 
-### Q10: 想清理旧的运行结果
+### Q10: How to clean up old run results
 
-**解决**：
+**Solution**:
 ```bash
-# 只保留最新的Definition运行
+# Keep only the latest Definition run
 cd lean_auto_validated_250tasks/definitions_only
 ls -t | tail -n +2 | xargs rm -rf
 
-# 只保留最新的Theorem运行
+# Keep only the latest Theorem run
 cd ../theorems_only
 ls -t | tail -n +2 | xargs rm -rf
 ```
 
-**警告**：删除前请确认不需要这些数据！
+**Warning**: Please confirm you do not need this data before deleting!
 
 ---
 
-## 🔧 系统工作原理
+## 🔧 How the System Works
 
-1. **任务分配**: 从预定义的任务列表中逐个处理
-2. **语法指导**: 每次任务都包含完整的Lean 4语法指南
-3. **代码生成**: AI根据任务描述和语法指南生成代码
-4. **实时验证**: Lean REPL验证生成的代码
-5. **错误反馈**: 编译错误自动反馈给AI（最多5次重试）
-6. **增量累积**: 验证通过的代码提交到session，供后续任务使用
-7. **完整记录**: 所有尝试、错误、token使用等信息都被记录
+1. **Task Assignment**: Process tasks one by one from a predefined task list
+2. **Syntax Guidance**: Each task includes the complete Lean 4 syntax guide
+3. **Code Generation**: The AI generates code based on the task description and syntax guide
+4. **Real-time Verification**: The Lean REPL verifies the generated code
+5. **Error Feedback**: Compilation errors are automatically fed back to the AI (up to 5 retries)
+6. **Incremental Accumulation**: Verified code is committed to the session for use by subsequent tasks
+7. **Complete Records**: All attempts, errors, and token usage information are recorded
 
-这个闭环系统能够自动修正错误，持续改进代码质量。
+This closed-loop system can automatically correct errors and continuously improve code quality.
 
 ---
 
-## 🎯 快速参考
+## 🎯 Quick Reference
 
 ```bash
-# 完整流程（首次运行）
-# 1. 安装Lean
+# Full workflow (first run)
+# 1. Install Lean
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
 source ~/.zshrc
 
-# 2. 构建项目
+# 2. Build the project
 cd /path/to/auto-build/LeanGeo
 lake build
 
-# 3. 配置API
+# 3. Configure the API
 cd ../lean_auto_build_system
 cp config/api_config.example.json config/api_config.json
-vim config/api_config.json  # 填入API密钥
+vim config/api_config.json  # Fill in the API key
 
-# 4. 测试运行
+# 4. Test run
 bash scripts/run_all_experiments.sh --test
 
-# 完整流程（已配置）
+# Full workflow (already configured)
 bash scripts/run_all_experiments.sh
 ```
 
 ---
 
-## 📚 更多文档
+## 📚 More Documentation
 
-- **系统架构**: [README.md](README.md) - 系统概述和目录结构
-- **API配置**: [config/README.md](config/README.md) - 详细配置选项
-- **Lean语法**: [prompts/lean_short_guide.md](prompts/lean_short_guide.md) - 完整语法指南
-- **示例输出**: [examples/README.md](examples/README.md) - 示例运行结果
-- **Lean官方文档**: https://leanprover.github.io/
-- **Mathlib文档**: https://leanprover-community.github.io/mathlib4_docs/
+- **System Architecture**: [README.md](README.md) - System overview and directory structure
+- **API Configuration**: [config/README.md](config/README.md) - Detailed configuration options
+- **Lean Syntax**: [prompts/lean_short_guide.md](prompts/lean_short_guide.md) - Complete syntax guide
+- **Example Output**: [examples/README.md](examples/README.md) - Example run results
+- **Lean Official Documentation**: https://leanprover.github.io/
+- **Mathlib Documentation**: https://leanprover-community.github.io/mathlib4_docs/

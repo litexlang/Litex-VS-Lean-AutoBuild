@@ -1,42 +1,33 @@
-# API配置说明
+# API Configuration Instructions
 
-## 配置文件位置
+## Configuration File Location
 `config/api_config.json`
 
-## 首次使用
+## First Time Use
 
-1. 复制示例配置文件：
+1. Copy the example configuration file:
 ```bash
 cp config/api_config.example.json config/api_config.json
 ```
 
-2. 编辑 `config/api_config.json`，填入你的API密钥：
+2. Edit `config/api_config.json` and fill in your API key:
 ```json
 {
   "api_key": "your-actual-api-key-here",
-  "base_url": "http://113.45.39.247:3001/v1",
-  "model": "gpt-5.6-sol"
+  "base_url": "https://api.openai.com/v1",
+  "model": "gpt-4"
 }
 ```
 
-## 配置项说明
+## Configuration Fields
 
-| 字段 | 说明 | 默认值 |
-|------|------|--------|
-| `api_key` | API密钥（必填） | - |
-| `base_url` | API端点URL | `http://113.45.39.247:3001/v1` |
-| `model` | 使用的模型名称 | `gpt-5.6-sol` |
+| Field | Description | Default Value |
+|-------|-------------|---------------|
+| `api_key` | API key (required) | - |
+| `base_url` | API endpoint URL | `https://api.openai.com/v1` |
+| `model` | Model name to use | `gpt-4` |
 
-## 支持的API提供商
-
-### 内部服务器（默认）
-```json
-{
-  "api_key": "sk-xxxx",
-  "base_url": "http://113.45.39.247:3001/v1",
-  "model": "gpt-5.6-sol"
-}
-```
+## Supported API Providers
 
 ### OpenAI
 ```json
@@ -47,16 +38,33 @@ cp config/api_config.example.json config/api_config.json
 }
 ```
 
-### 其他兼容OpenAI API的服务
-只需修改 `base_url` 和 `model` 即可。
+### DeepSeek
+```json
+{
+  "api_key": "sk-xxxx",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-chat"
+}
+```
 
-## 安全注意事项
+### Other OpenAI API Compatible Services
+Simply modify `base_url` and `model` as needed.
 
-⚠️ **重要**：
-- `api_config.json` 已被加入 `.gitignore`，不会被提交到git
-- 不要将包含真实API密钥的配置文件分享给他人
-- 不要将API密钥硬编码到代码中
+## Security Notes
 
-## 获取API密钥
+⚠️ **Important**:
+- `api_config.json` is in `.gitignore` and will not be committed to git
+- Do not share configuration files containing real API keys with others
+- Do not hardcode API keys into the code
 
-请联系系统管理员获取内部服务器的API密钥。
+## Obtaining API Keys
+
+### OpenAI
+1. Visit [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Login to your account
+3. Create a new API key
+
+### DeepSeek
+1. Visit [https://platform.deepseek.com/](https://platform.deepseek.com/)
+2. Register/login to your account
+3. Create API key in the console

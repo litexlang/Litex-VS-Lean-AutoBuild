@@ -1,66 +1,66 @@
-# 实验输出目录
+# Experiment Output Directory
 
-这个目录用于存放你自己运行的实验输出。
+This directory is for storing your own experiment run outputs.
 
-## 📁 目录结构
+## 📁 Directory Structure
 
 ```
 litex_auto_validated_250tasks/
 ├── definitions_only/
-│   └── run_YYYYMMDD_HHMMSS/    # 你的Definition实验输出
+│   └── run_YYYYMMDD_HHMMSS/    # Your Definition experiment output
 └── theorems_only/
-    └── run_YYYYMMDD_HHMMSS/    # 你的Theorem实验输出
+    └── run_YYYYMMDD_HHMMSS/    # Your Theorem experiment output
 ```
 
-## ✅ 特点
+## ✅ Features
 
-- **自动创建**: 运行实验时自动创建带时间戳的目录
-- **不会覆盖**: 每次运行创建新目录，旧的运行结果保留
-- **完整记录**: 包含日志、状态、尝试记录等所有信息
+- **Auto-created**: Automatically creates timestamped directories when running experiments
+- **No Overwriting**: Each run creates a new directory, old run results are preserved
+- **Complete Records**: Contains logs, states, attempt records, and all other information
 
-## 📊 输出文件说明
+## 📊 Output File Description
 
-每个运行目录包含：
+Each run directory contains:
 
-| 文件 | 说明 |
-|------|------|
-| `experiment.log` | 完整的控制台日志 |
-| `experiment_log.md` | Markdown格式日志 |
-| `state.json` | 实验状态（已完成任务等） |
-| `library_final.lit` | 最终生成的完整库 |
-| `attempts.json` | 所有尝试的详细记录 |
-| `axioms_debt.md` | Axiom债务清单（仅Theorem） |
+| File | Description |
+|------|-------------|
+| `experiment.log` | Complete console log |
+| `experiment_log.md` | Markdown format log |
+| `state.json` | Experiment state (completed tasks, etc.) |
+| `library_final.lit` | Final generated complete library |
+| `attempts.json` | Detailed record of all attempts |
+| `axioms_debt.md` | Axiom debt list (Theorem only) |
 
-## 🎯 查看结果
+## 🎯 Viewing Results
 
 ```bash
-# 列出所有运行
+# List all runs
 ls -lt litex_auto_validated_250tasks/*/
 
-# 查看最新的Definition运行
+# View latest Definition run
 ls -lt litex_auto_validated_250tasks/definitions_only/run_*/
 
-# 查看最新的Theorem运行
+# View latest Theorem run
 ls -lt litex_auto_validated_250tasks/theorems_only/run_*/
 ```
 
-## 🔄 与示例的区别
+## 🔄 Difference from Examples
 
-- **`examples/`**: 预先提供的示例输出，供参考学习
-- **`litex_auto_validated_250tasks/`**: 你自己运行的实际输出
+- **`examples/`**: Pre-provided example outputs for reference and learning
+- **`litex_auto_validated_250tasks/`**: Your own actual run outputs
 
-## 🧹 清理
+## 🧹 Cleanup
 
-如果需要清理旧的运行结果：
+If you need to clean up old run results:
 
 ```bash
-# 删除所有Definition运行（保留最新的除外）
+# Delete all Definition runs (except the latest)
 cd litex_auto_validated_250tasks/definitions_only
 ls -t | tail -n +2 | xargs rm -rf
 
-# 删除所有Theorem运行（保留最新的除外）
+# Delete all Theorem runs (except the latest)
 cd ../theorems_only
 ls -t | tail -n +2 | xargs rm -rf
 ```
 
-**注意**: 删除前请确认不需要这些数据！
+**Note**: Make sure you don't need this data before deleting!

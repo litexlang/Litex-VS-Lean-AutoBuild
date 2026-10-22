@@ -1,16 +1,19 @@
-# API配置说明
+# API Configuration Instructions
 
-## 配置文件位置
+## Configuration File Location
+
 `config/api_config.json`
 
-## 首次使用
+## First Time Use
 
-1. 复制示例配置文件：
+1. Copy the example configuration file:
+
 ```bash
 cp config/api_config.example.json config/api_config.json
 ```
 
-2. 编辑 `config/api_config.json`，填入你的API密钥：
+1. Edit `config/api_config.json` and fill in your API key:
+
 ```json
 {
   "api_key": "your-actual-api-key-here",
@@ -19,17 +22,18 @@ cp config/api_config.example.json config/api_config.json
 }
 ```
 
-## 配置项说明
+## Configuration Fields
 
-| 字段 | 说明 | 默认值 |
-|------|------|--------|
-| `api_key` | API密钥（必填） | - |
-| `base_url` | API端点URL | `https://api.deepseek.com` |
-| `model` | 使用的模型名称 | `deepseek-chat` |
+| Field      | Description        | Default Value              |
+| ---------- | ------------------ | -------------------------- |
+| `api_key`  | API key (required) | -                          |
+| `base_url` | API endpoint URL   | `https://api.deepseek.com` |
+| `model`    | Model name to use  | `deepseek-chat`            |
 
-## 支持的API提供商
+## Supported API Providers
 
-### DeepSeek（默认）
+### DeepSeek (Default)
+
 ```json
 {
   "api_key": "sk-xxxx",
@@ -39,6 +43,7 @@ cp config/api_config.example.json config/api_config.json
 ```
 
 ### OpenAI
+
 ```json
 {
   "api_key": "sk-xxxx",
@@ -47,19 +52,26 @@ cp config/api_config.example.json config/api_config.json
 }
 ```
 
-### 其他兼容OpenAI API的服务
-只需修改 `base_url` 和 `model` 即可。
+### Other OpenAI API Compatible Services
 
-## 安全注意事项
+Simply modify `base_url` and `model` as needed.
 
-## 获取API密钥
+## Security Notes
+
+- **Never commit** `api_config.json` to version control
+- The file is already in `.gitignore`
+- Keep your API key secure and private
+
+## Obtaining API Keys
 
 ### DeepSeek
-1. 访问 [https://platform.deepseek.com/](https://platform.deepseek.com/)
-2. 注册/登录账号
-3. 在控制台创建API密钥
+
+1. Visit <https://platform.deepseek.com/>
+2. Register/login to your account
+3. Create API key in the console
 
 ### OpenAI
-1. 访问 [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. 登录账号
-3. 创建新的API密钥
+
+1. Visit <https://platform.openai.com/api-keys>
+2. Login to your account
+3. Create a new API key

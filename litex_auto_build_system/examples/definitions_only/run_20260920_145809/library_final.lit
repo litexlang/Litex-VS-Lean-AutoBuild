@@ -1,25 +1,25 @@
 # ============================================================
-# LitexGeo AutoBuild — session 导出库
-# committed 条目数: 36
-# axiom 债务数: 0
-# 用法: 搜 `^axiom ` 找到信任债，改回 thm + 证明即可。
+# LitexGeo AutoBuild — session export library
+# Number of committed entries: 36
+# Axiom debt count: 0
+# Usage: search for `^axiom ` to find the trusted debt, then change it back to thm + proof.
 # ============================================================
 
-# LitexGeo 基础库
+# LitexGeo base library
 
-# 点是实数坐标对
+# A point is a pair of real coordinates
 have points set = cart(R, R)
 
-# 向量：从 A 到 B
+# Vector: from A to B
 have fn vec(A, B cart(R, R)) cart(R, R) = (B[1] - A[1], B[2] - A[2])
 
-# 点积
+# Dot product
 have fn dot(u, v cart(R, R)) R = u[1] * v[1] + u[2] * v[2]
 
-# 行列式
+# Determinant
 have fn det(u, v cart(R, R)) R = u[1] * v[2] - u[2] * v[1]
 
-# ---------- session 已提交内容（定义 / thm / axiom）----------
+# ---------- Content committed in this session (definitions / thm / axiom) ----------
 
 have fn distance_sq(a, b cart(R, R)) R = dot(vec(a, b), vec(a, b))
 

@@ -1,8 +1,8 @@
 {
   "definitions": [
-    "-- vec 已在种子库 lean_library_seed.txt 中定义，无需重复定义",
-    "-- dot 已在种子库 lean_library_seed.txt 中定义，无需重复定义",
-    "-- det 已在种子库 lean_library_seed.txt 中定义，无需重复定义",
+    "-- vec is already defined in the seed library lean_library_seed.txt; no need to redefine",
+    "-- dot is already defined in the seed library lean_library_seed.txt; no need to redefine",
+    "-- det is already defined in the seed library lean_library_seed.txt; no need to redefine",
     "def distance_sq (A B : Point) : ℝ :=\n  dot (vec A B) (vec A B)",
     "def line (a b c : ℝ) (_ : a ≠ 0 ∨ b ≠ 0) : Set Point :=\n  {p | a * p.1 + b * p.2 + c = 0}",
     "def line_of (a b : Point) (_ : a ≠ b) : Set Point :=\n  {p | det (vec a b) (vec a p) = 0}",

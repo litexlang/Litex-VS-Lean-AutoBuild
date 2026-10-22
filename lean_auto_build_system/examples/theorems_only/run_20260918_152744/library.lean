@@ -1,27 +1,27 @@
--- LeanGeo 基础库
+-- LeanGeo base library
 
 import Mathlib.Data.Real.Basic
 
--- 点类型定义为实数坐标对
+-- The point type is defined as a pair of real coordinates
 def Point := ℝ × ℝ
 
--- 向量：从A到B
+-- Vector: from A to B
 def vec (A B : Point) : Point := (B.1 - A.1, B.2 - A.2)
 
--- 点积
+-- Dot product
 def dot (u v : Point) : ℝ := u.1 * v.1 + u.2 * v.2
 
--- 行列式
+-- Determinant
 def det (u v : Point) : ℝ := u.1 * v.2 - u.2 * v.1
 
 
--- ========== 已定义的概念 ==========
+-- ========== Defined concepts ==========
 
--- vec 已在种子库 agent_library_seed.txt 中定义，无需重复定义
+-- vec is already defined in the seed library agent_library_seed.txt; no need to redefine it
 
--- dot 已在种子库 agent_library_seed.txt 中定义，无需重复定义
+-- dot is already defined in the seed library agent_library_seed.txt; no need to redefine it
 
--- det 已在种子库 agent_library_seed.txt 中定义，无需重复定义
+-- det is already defined in the seed library agent_library_seed.txt; no need to redefine it
 
 def distance_sq (A B : Point) : ℝ := dot (vec A B) (vec A B)
 
@@ -141,7 +141,7 @@ def rotated_90_cw (u v : Point) : Prop :=
 def rotated_90_ccw (u v : Point) : Prop :=
   v.1 = -u.2 ∧ v.2 = u.1
 
--- ========== 已证明的定理 ==========
+-- ========== Proven theorems ==========
 
 theorem addition_cancel : ∀ (a b c : ℝ), a + b = a + c → b = c := by
   intro a b c h
@@ -621,7 +621,7 @@ theorem angle_equality_cross_ratio : ∀ (A B C D E F : Point),
   intro A B C D E F h
   exact h.2
 
-/-- 思路：旋转交换向量的两个坐标并改变一个符号，平方和不变。 -/
+/-- Approach: Rotation swaps the two coordinates of the vector and changes one sign, leaving the sum of squares unchanged. -/
 theorem rotation_preserves_distance : ∀ (A B C D : Point),
     rotated_90_cw (vec A B) (vec C D) →
     distance_sq A B = distance_sq C D := by
@@ -634,7 +634,7 @@ theorem rotation_preserves_distance : ∀ (A B C D : Point),
   simp only [neg_sq]
   exact add_comm _ _
 
-/-- 思路：两个向量同时顺时针旋转九十度，点积的两项交换，值不变。 -/
+/-- Approach: Rotating both vectors clockwise by 90 degrees swaps the two terms of the dot product, leaving its value unchanged. -/
 theorem rotation_preserves_dot : ∀ (u v u' v' : Point),
     rotated_90_cw u u' →
     rotated_90_cw v v' →
@@ -647,7 +647,7 @@ theorem rotation_preserves_dot : ∀ (u v u' v' : Point),
   simp only [neg_mul_neg]
   exact add_comm _ _
 
-/-- 思路：两个向量同时顺时针旋转九十度，行列式的两项交换并同时变号，值不变。 -/
+/-- Approach: Rotating both vectors clockwise by 90 degrees swaps the two terms of the determinant and flips both signs, leaving its value unchanged. -/
 theorem rotation_preserves_det : ∀ (u v u' v' : Point),
     rotated_90_cw u u' →
     rotated_90_cw v v' →
@@ -660,8 +660,8 @@ theorem rotation_preserves_det : ∀ (u v u' v' : Point),
   simp only [mul_neg, neg_mul, sub_eq_add_neg, neg_neg]
   exact add_comm _ _
 
-/-- 思路：以圆心为原点，直径两端的坐标互为相反数；
-    点积等于点到圆心的距离平方减去半径平方。 -/
+/-- Approach: Taking the circle's center as the origin, the coordinates of the two diameter endpoints are negatives of each other;
+    The dot product equals the squared distance from the point to the center minus the squared radius. -/
 theorem angle_in_semicircle_coordinate :
     ∀ (A B P O : Point) (r : ℝ),
       is_diameter_endpoints A B O r →
@@ -721,7 +721,7 @@ theorem angle_in_semicircle_coordinate :
       simp [sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
     _ = 0 := by rw [hP, hA]; simp
 
-/-- 思路：中点坐标满足两侧对应坐标差相等，代入距离平方公式即可。 -/
+/-- Approach: The midpoint coordinates make the corresponding coordinate differences on both sides equal; substitute into the squared-distance formula. -/
 theorem collinear_implies_midpoint_distance :
     ∀ (A B M : Point),
       is_collinear A M B →
@@ -749,7 +749,7 @@ theorem collinear_implies_midpoint_distance :
       _ = B.2 + A.2 := add_comm _ _
   rw [hdx, hdy]
 
-/-- 思路：平行的定义中已包含对应向量的行列式为零，直接提取该条件。 -/
+/-- Approach: The definition of parallelism already includes that the determinant of the corresponding vectors is zero; extract that condition directly. -/
 theorem parallel_implies_det_zero : ∀ (A B C D : Point),
     is_parallel A B C D → det (vec A B) (vec C D) = 0 := by
   intro A B C D h
@@ -765,7 +765,7 @@ theorem circumcenter_equidistant_triple :
   intro O A B C r hA hB hC
   exact circumcenter_equidistant O A B C r hA hB hC
 
-/-- 思路：中点到原点与反射点的对应坐标差互为相反数，因此距离平方相等。 -/
+/-- Approach: The coordinate differences from the midpoint to the origin and to the reflected point are negatives of each other, so the squared distances are equal. -/
 theorem reflection_equidistant : ∀ (P P' M : Point),
     is_midpoint M P P' →
     distance_sq M P = distance_sq M P' := by
@@ -796,7 +796,7 @@ theorem reflection_equidistant : ∀ (P P' M : Point),
   rw [hdx, hdy]
   simp only [neg_sq]
 
-/-- 思路：四点都满足同一圆心、同一半径的圆方程，直接以该圆心和半径见证共圆。 -/
+/-- Approach: All four points satisfy the circle equation with the same center and radius; witness concyclicity directly with that center and radius. -/
 theorem concyclic_fourth_point :
     ∀ (O A B C D : Point) (r : ℝ),
       circle O r A →
@@ -814,8 +814,8 @@ theorem perp_dot_zero_coordinate : ∀ (A B C D : Point),
   intro A B C D h
   exact perpendicular_dot_expand A B C D h
 
-/-- 思路：将 AC 的坐标差分解为 AB 与 BC 的坐标差之和，
-    展开平方和，再利用垂直条件消去两个交叉项。 -/
+/-- Approach: Decompose the coordinate difference of AC as the sum of the coordinate differences of AB and BC,
+    Expand the sum of squares, then use the perpendicularity condition to cancel the two cross terms. -/
 theorem perpendicular_implies_distance_sum :
     ∀ (A B C : Point),
       is_perpendicular A B B C →
@@ -855,8 +855,8 @@ theorem midpoint_equidistant_prop : ∀ (A B M : Point),
   intro A B M hmid
   exact reflection_equidistant A B M hmid
 
-/-- 思路：直角条件给出 BA 与 BC 的点积为零；
-    将 BA 反向得到 AB，再应用垂直条件下的距离平方和定理。 -/
+/-- Approach: The right-angle condition gives that the dot product of BA and BC is zero;
+    Reverse BA to get AB, then apply the squared-distance-sum theorem under the perpendicularity condition. -/
 theorem pythagorean_prop : ∀ (A B C : Point),
     is_right_angle A B C →
     distance_sq A B + distance_sq B C = distance_sq A C := by
@@ -878,26 +878,26 @@ theorem collinear_symmetric_prop : ∀ (A B C : Point),
   intro A B C h
   exact collinear_symmetric A B C h
 
-/-- 思路：直接应用已证明的垂直关系对称性定理。 -/
+/-- Approach: Directly apply the already-proven symmetry theorem for perpendicularity. -/
 theorem perpendicular_symmetric_prop : ∀ (A B C D : Point),
     is_perpendicular A B C D → is_perpendicular C D A B := by
   intro A B C D h
   exact perpendicular_symmetric A B C D h
 
-/-- 思路：直接应用已证明的平行关系对称性定理。 -/
+/-- Approach: Directly apply the already-proven symmetry theorem for parallelism. -/
 theorem parallel_symmetric_prop : ∀ (A B C D : Point),
     is_parallel A B C D → is_parallel C D A B := by
   intro A B C D h
   exact parallel_symmetric A B C D h
 
-/-- 思路：直接应用已证明的线段全等关系对称性定理。 -/
+/-- Approach: Directly apply the already-proven symmetry theorem for segment congruence. -/
 theorem segments_congruent_symmetric_prop : ∀ (A B C D : Point),
     are_segments_congruent A B C D →
     are_segments_congruent C D A B := by
   intro A B C D h
   exact segments_congruent_symmetric A B C D h
 
-/-- 思路：直接应用已证明的线段全等关系传递性定理。 -/
+/-- Approach: Directly apply the already-proven transitivity theorem for segment congruence. -/
 theorem segments_congruent_transitive_prop : ∀ (A B C D E F : Point),
     are_segments_congruent A B C D →
     are_segments_congruent C D E F →
@@ -905,7 +905,7 @@ theorem segments_congruent_transitive_prop : ∀ (A B C D E F : Point),
   intro A B C D E F h₁ h₂
   exact segments_congruent_transitive A B C D E F h₁ h₂
 
-/-- 思路：直接应用已证明的线段全等关系自反性定理。 -/
+/-- Approach: Directly apply the already-proven reflexivity theorem for segment congruence. -/
 theorem segments_congruent_reflexive_prop : ∀ (A B : Point),
     are_segments_congruent A B A B := by
   intro A B
@@ -918,7 +918,7 @@ theorem segments_congruent_from_distance_sq : ∀ (A B C D : Point),
   unfold are_segments_congruent
   exact h
 
-/-- 思路：交换两点后，两个坐标差均变为相反数，平方不变。 -/
+/-- Approach: Swapping the two points negates both coordinate differences, leaving the squares unchanged. -/
 theorem distance_sq_symmetric_prop : ∀ (A B : Point),
     distance_sq A B = distance_sq B A := by
   intro A B
@@ -930,7 +930,7 @@ theorem distance_sq_symmetric_prop : ∀ (A B : Point),
   rw [hx, hy]
   simp only [neg_sq]
 
-/-- 泰勒斯定理：圆的直径所对的圆周角是直角。 -/
+/-- Thales' theorem: the inscribed angle subtended by a diameter is a right angle. -/
 theorem thales_theorem_prop : ∀ (A B P O : Point) (r : ℝ),
     is_diameter_endpoints A B O r →
     circle O r P →
@@ -938,8 +938,8 @@ theorem thales_theorem_prop : ∀ (A B P O : Point) (r : ℝ),
   intro A B P O r hdiam hP
   exact angle_in_semicircle_coordinate A B P O r hdiam hP
 
-/-- 思路：同一点分别为两条线段的中点，因此两组端点坐标和相等；
-    由此两条对应边的坐标差互为相反数，距离平方相等。 -/
+/-- Approach: The same point is the midpoint of both segments, so the sums of the two pairs of endpoint coordinates are equal;
+    Thus the coordinate differences of the two corresponding sides are negatives of each other, and the squared distances are equal. -/
 theorem double_midpoint_equal_sides :
     ∀ (A B C D M : Point),
       is_midpoint M A B →
@@ -977,14 +977,14 @@ theorem double_midpoint_equal_sides :
   rw [hxneg, hyneg]
   simp only [neg_sq]
 
-/-- 思路：中点的定义即为两个坐标分别等于端点对应坐标的平均值。 -/
+/-- Approach: By definition, the midpoint's two coordinates equal the averages of the corresponding endpoint coordinates. -/
 theorem midpoint_coordinate_formula : ∀ (M A B : Point),
     is_midpoint M A B →
       M.1 = (A.1 + B.1) / 2 ∧ M.2 = (A.2 + B.2) / 2 := by
   intro M A B h
   exact h
 
-/-- 思路：展开点在圆上的定义与圆的定义，即得到距离平方等于半径平方。 -/
+/-- Approach: Unfold the definition of a point on the circle and the definition of the circle to obtain squared distance equals squared radius. -/
 theorem on_circle_distance_prop : ∀ (P O : Point) (r : ℝ),
     is_on_circle P O r →
     distance_sq O P = r ^ 2 := by
@@ -992,14 +992,14 @@ theorem on_circle_distance_prop : ∀ (P O : Point) (r : ℝ),
   unfold is_on_circle circle at h
   exact h
 
-/-- 顺时针旋转九十度保持向量对应线段的距离平方不变。 -/
+/-- Rotating clockwise by 90 degrees preserves the squared distance of the segment corresponding to the vector. -/
 theorem rotation_90_cw_distance_prop : ∀ (A B C D : Point),
     rotated_90_cw (vec A B) (vec C D) →
     distance_sq A B = distance_sq C D := by
   intro A B C D h
   exact rotation_preserves_distance A B C D h
 
-/-- 思路：代入顺时针旋转的坐标关系，用乘法交换律消去点积中的两项。 -/
+/-- Approach: Substitute the clockwise-rotation coordinate relations and use the commutativity of multiplication to cancel the two terms in the dot product. -/
 theorem rotation_90_cw_perpendicular_prop : ∀ (A B C D : Point),
     rotated_90_cw (vec A B) (vec C D) →
     is_perpendicular A B C D := by
@@ -1010,8 +1010,8 @@ theorem rotation_90_cw_perpendicular_prop : ∀ (A B C D : Point),
   rw [mul_neg, mul_comm (vec A B).2 (vec A B).1]
   exact add_neg_cancel _
 
-/-- 思路：共线向量若非零，则另一向量为其标量倍数；
-    利用点积的齐次性证明平方交叉等式，并单独处理零向量。 -/
+/-- Approach: If a collinear vector is nonzero, then the other vector is a scalar multiple of it;
+    Use the homogeneity of the dot product to prove the squared cross-equality, handling the zero vector separately. -/
 theorem vertical_angles_square_core :
     ∀ (A B C D O : Point),
       is_collinear O A C →
@@ -1076,8 +1076,8 @@ theorem vertical_angles_square_core :
     scale_dot u v a b]
   simp only [mul_pow, pow_two, mul_assoc, mul_comm, mul_left_comm]
 
-/-- 思路：交点在线段上使两组向量分别具有非负参数乘积；
-    两个点积之积因此等于非负系数乘以同一点积的平方。 -/
+/-- Approach: The intersection point on the segment makes the two pairs of vectors have nonnegative parameter products respectively;
+    The product of the two dot products therefore equals a nonnegative coefficient times the square of the same dot product. -/
 theorem vertical_angles_sign_core :
     ∀ (A B C D O : Point),
       is_on_segment O A C →
@@ -1161,7 +1161,7 @@ theorem dot_two_scale : ∀ (u v : Point) (a b : ℝ),
   intro u v a b
   simp [dot, mul_add, mul_assoc, mul_comm, mul_left_comm]
 
-/-- 思路：BP 是 BA 的 (1-t) 倍，利用点积齐次性和距离平方的对称性。 -/
+/-- Approach: BP is (1-t) times BA; use the homogeneity of the dot product and the symmetry of squared distance. -/
 theorem affine_dot_backward : ∀ (P A B : Point) (t : ℝ),
     is_affine_combination P A B t →
     dot (vec B A) (vec B P) = (1 - t) * distance_sq A B := by
@@ -1184,7 +1184,7 @@ theorem affine_dot_backward : ∀ (P A B : Point) (t : ℝ),
   rw [hvec, dot_scale_right, vec_dot_self_is_distance,
     distance_sq_symmetric_prop B A]
 
-/-- 思路：AP 是 AB 的 t 倍，利用点积对第二个向量的齐次性。 -/
+/-- Approach: AP is t times AB; use the homogeneity of the dot product in its second argument. -/
 theorem affine_dot_forward : ∀ (P A B : Point) (t : ℝ),
     is_affine_combination P A B t →
     dot (vec A B) (vec A P) = t * distance_sq A B := by
@@ -1202,7 +1202,7 @@ theorem affine_distance_from_parameter : ∀ (P A B : Point) (t : ℝ),
   intro P A B t h
   exact affine_combination_distance_sq P A B t h
 
-/-- 思路：由交点在线段上得到点积乘积非负，由两组共线关系得到平方交叉等式。 -/
+/-- Approach: The intersection point on the segment gives a nonnegative product of dot products, and the two collinearity relations give the squared cross-equality. -/
 theorem vertical_angles_equal :
     ∀ (A B C D O : Point),
       is_collinear O A C →
@@ -1215,8 +1215,8 @@ theorem vertical_angles_equal :
     (vertical_angles_sign_core A B C D O hsegAC hsegBD)
     (vertical_angles_square_core A B C D O hAC hBD)
 
-/-- 思路：由向量缩放和边长相等消去非零距离平方，
-    得到 k² = 1；再用 k ≥ 0 排除 k = -1。 -/
+/-- Approach: Use vector scaling and equal side lengths to cancel the nonzero squared distances,
+    Obtain k^2 = 1; then use k >= 0 to rule out k = -1. -/
 theorem aas_scalar_first_side :
     ∀ (A B D E : Point) (k : ℝ),
       A ≠ B →
@@ -1251,7 +1251,7 @@ theorem aas_scalar_first_side :
     (mul_eq_zero.mp hfactor).resolve_right hsum_ne
   exact sub_eq_zero.mp hsub
 
-/-- 思路：将最后一边 CA、FD 分别代入已证明的首边标量消去定理。 -/
+/-- Approach: Substitute the final sides CA and FD respectively into the already-proven first-side scalar cancellation theorem. -/
 theorem aas_scalar_last_side :
     ∀ (A C D F : Point) (k : ℝ),
       C ≠ A →
@@ -1268,7 +1268,7 @@ theorem cancel_positive_right_factor : ∀ (a b c : ℝ),
   apply (mul_right_cancel₀ (ne_of_gt hc))
   exact h
 
-/-- 三角形三点不共线，因此对应向量的行列式不为零。 -/
+/-- The three triangle vertices are not collinear, so the determinant of the corresponding vectors is nonzero. -/
 theorem triangle_det_nonzero : ∀ (A B C : Point),
     is_triangle A B C →
     det (vec A B) (vec A C) ≠ 0 := by
@@ -1276,7 +1276,7 @@ theorem triangle_det_nonzero : ∀ (A B C : Point),
   unfold is_triangle is_collinear at h
   exact h
 
-/-- 三角形三点不共线，因此对应向量的行列式平方严格为正。 -/
+/-- The three triangle vertices are not collinear, so the squared determinant of the corresponding vectors is strictly positive. -/
 theorem triangle_det_square_positive : ∀ (A B C : Point),
     is_triangle A B C →
     0 < det (vec A B) (vec A C) ^ 2 := by
@@ -1287,7 +1287,7 @@ theorem square_neg : ∀ (a : ℝ), (-a) ^ 2 = a ^ 2 := by
   intro a
   simp
 
-/-- AAS：两组对应角相等，并由对应边等长条件得到三边对应相等，从而三角形全等。 -/
+/-- AAS: two pairs of corresponding angles are equal, and the corresponding-side equality condition yields all three sides equal, hence the triangles are congruent. -/
 theorem triangle_congruence_AAS : ∀ (A B C D E F : Point),
     are_angles_congruent A B C D E F →
     are_angles_congruent B A C E D F →
@@ -1299,8 +1299,8 @@ theorem triangle_congruence_AAS : ∀ (A B C D E F : Point),
   exact asa_congruence A B C D E F
     hangle₁ hAB hangle₂ hBC hCA
 
-/-- 思路：中点使两端点坐标和等于中点坐标的两倍；
-    距离平方之差因此等于垂直向量点积的两倍。 -/
+/-- Approach: The midpoint makes the sum of the two endpoint coordinates equal twice the midpoint coordinate;
+    The difference of the squared distances therefore equals twice the dot product of the perpendicular vectors. -/
 theorem perpendicular_bisector_property :
     ∀ (P A B M : Point),
       is_midpoint M A B →
@@ -1366,7 +1366,7 @@ theorem perpendicular_from_dot_zero : ∀ (A B C D : Point),
   unfold is_perpendicular
   exact h
 
-/-- 平行四边形两组对边的坐标差满足对应的行列式等式。 -/
+/-- For a parallelogram, the coordinate differences of the two pairs of opposite sides satisfy the corresponding determinant equalities. -/
 theorem parallelogram_coordinate_difference :
     ∀ (A B C D : Point),
       is_parallelogram A B C D →
@@ -1380,12 +1380,12 @@ theorem parallelogram_coordinate_difference :
   · exact sub_eq_zero.mp (parallel_implies_det_zero A B C D hABCD)
   · exact sub_eq_zero.mp (parallel_implies_det_zero B C D A hBCDA)
 
-/-- 思路：将相等的实数代入平方表达式。 -/
+/-- Approach: Substitute the equal real numbers into the squared expression. -/
 theorem square_of_equal : ∀ (a b : ℝ), a = b → a ^ 2 = b ^ 2 := by
   intro a b h
   rw [h]
 
-/-- 思路：展开坐标和的平方，利用正交条件消去两个交叉项。 -/
+/-- Approach: Expand the square of the coordinate sum and use the orthogonality condition to cancel the two cross terms. -/
 theorem orthogonal_coordinate_sum_square :
     ∀ (x₁ y₁ x₂ y₂ : ℝ),
       x₁ * x₂ + y₁ * y₂ = 0 →
@@ -1403,7 +1403,7 @@ theorem orthogonal_coordinate_sum_square :
       rw [horth]
       simp
 
-/-- 顺时针旋转九十度保持长度并产生垂直关系，因此所得三角形为等腰直角三角形。 -/
+/-- Rotating clockwise by 90 degrees preserves lengths and produces perpendicularity, so the resulting triangle is an isosceles right triangle. -/
 theorem rotated_90_creates_isosceles_right : ∀ (A B C : Point),
     rotated_90_cw (vec A B) (vec A C) →
     is_isosceles A B C ∧ is_right_angle B A C := by
@@ -1414,7 +1414,7 @@ theorem rotated_90_creates_isosceles_right : ∀ (A B C : Point),
     exact rotation_90_cw_distance_prop A B A C hrot
   · exact rotation_90_cw_perpendicular_prop A B A C hrot
 
-/-- 正方形的对角线长度平方等于边长平方的两倍。 -/
+/-- The square of a square's diagonal length equals twice the square of its side length. -/
 theorem square_diagonal_length : ∀ (A B C D : Point),
     is_square A B C D →
     distance_sq A C = 2 * distance_sq A B := by
@@ -1431,7 +1431,7 @@ theorem square_diagonal_length : ∀ (A B C D : Point),
     _ = distance_sq A B + distance_sq A B := by rw [← hsides]
     _ = 2 * distance_sq A B := (two_mul (distance_sq A B)).symm
 
-/-- 等腰直角三角形的斜边长度平方等于一条直角边长度平方的两倍。 -/
+/-- In an isosceles right triangle, the square of the hypotenuse length equals twice the square of a leg length. -/
 theorem isosceles_right_hypotenuse_length : ∀ (A B C : Point),
     is_right_angle A B C →
     are_segments_congruent A B B C →
@@ -1447,7 +1447,7 @@ theorem isosceles_right_hypotenuse_length : ∀ (A B C : Point),
     _ = distance_sq A B + distance_sq A B := by rw [← hequal]
     _ = 2 * distance_sq A B := (two_mul (distance_sq A B)).symm
 
-/-- 对顶角对应点积的平方交叉等式。 -/
+/-- Vertical angles correspond to the squared cross-equality of the dot products. -/
 theorem vertical_angles_dot_equal :
     ∀ (A B C D O : Point),
       is_collinear O A C →
@@ -1558,7 +1558,7 @@ theorem collinear_coordinates_imply_affine_parameter :
         P.2 = A.2 + (P.2 - A.2) := by simp
         _ = A.2 + t * (B.2 - A.2) := by rw [hty]
 
-/-- 思路：展开点在线上与仿射组合的定义，两者具有相同的参数表示。 -/
+/-- Approach: Unfold the definitions of a point on the line and of an affine combination; both have the same parametric representation. -/
 theorem on_line_implies_affine_parameter : ∀ (P A B : Point),
     is_on_line P A B →
     ∃ t : ℝ, is_affine_combination P A B t := by
@@ -1566,7 +1566,7 @@ theorem on_line_implies_affine_parameter : ∀ (P A B : Point),
   rcases h with ⟨t, ht⟩
   exact ⟨t, ht⟩
 
-/-- 直角三角形的直角顶点不等于其在对边所在直线上的垂足。 -/
+/-- The right-angle vertex of a right triangle is not equal to its foot on the line containing the opposite side. -/
 theorem right_angle_vertex_distinct_from_foot_on_opposite_line :
     ∀ (A B C H : Point),
       is_triangle A B C →
@@ -1583,7 +1583,7 @@ theorem right_angle_vertex_distinct_from_foot_on_opposite_line :
   rw [hB]
   simp [line, mul_assoc, mul_comm, mul_left_comm]
 
-/-- 直角三角形的直角顶点不在对边所在直线上。 -/
+/-- The right-angle vertex of a right triangle does not lie on the line containing the opposite side. -/
 theorem right_angle_vertex_not_on_opposite_line :
     ∀ (A B C : Point),
       is_triangle A B C →
@@ -1631,7 +1631,7 @@ theorem orthogonal_midpoint_scalar_finish : ∀ (t d : ℝ),
     t * 2 = t + t := mul_two t
     _ = 1 := hsum
 
-/-- 思路：由点积对称性将正交条件改写为 `dot v u = 0`，再利用点积的双线性。 -/
+/-- Approach: By the symmetry of the dot product, rewrite the orthogonality condition as `dot v u = 0`, then use bilinearity of the dot product. -/
 theorem orthogonal_midpoint_vector_core : ∀ (u v : Point),
     dot u v = 0 →
     dot (u.1 + v.1, u.2 + v.2) u = dot u u ∧
@@ -1644,7 +1644,7 @@ theorem orthogonal_midpoint_vector_core : ∀ (u v : Point),
   · rw [dot_linear_left, horth', add_zero]
   · rw [dot_linear_right, horth', zero_add]
 
-/-- 思路：对乘积等式两边平方，再用乘积的平方公式改写。 -/
+/-- Approach: Square both sides of the product equality, then rewrite using the square-of-a-product formula. -/
 theorem equal_products_have_equal_squares : ∀ (a b c d : ℝ),
     a * b = c * d →
     a ^ 2 * b ^ 2 = c ^ 2 * d ^ 2 := by
@@ -1669,7 +1669,7 @@ theorem cross_product_positive_det_product_implies_same_sign :
   intro u v w z h
   exact (mul_pos_iff.mp h)
 
-/-- 行列式乘积为正意味着两个行列式同号。 -/
+/-- A positive determinant product means the two determinants have the same sign. -/
 theorem cross_ratio_same_det_sign_implies_angle_congruence :
     ∀ (u v w z : Point),
       det u v * det w z > 0 →
@@ -1694,7 +1694,7 @@ theorem product_of_equal_factors : ∀ (a b c d : ℝ),
   intro a b c d hab hcd
   rw [hab, hcd]
 
-/-- 思路：展开两个以同一点为中心的距离平方，利用一个坐标差相等消去对应平方项。 -/
+/-- Approach: Expand the two squared distances centered at the same point, and use the equality of one coordinate difference to cancel the corresponding squared term. -/
 theorem equal_centered_norms_same_chord_coordinate :
     ∀ (O A B : Point),
       distance_sq O A = distance_sq O B →
@@ -1704,7 +1704,7 @@ theorem equal_centered_norms_same_chord_coordinate :
   rw [distance_sq_coordinate_formula, distance_sq_coordinate_formula, hx] at hdist
   exact add_left_cancel hdist
 
-/-- 思路：同圆心的两点距离平方相等，且横坐标相同，因此纵坐标差的平方相等。 -/
+/-- Approach: Two points at the same distance from the center have equal squared distances, and since their x-coordinates are equal, the squares of their y-coordinate differences are equal. -/
 theorem common_center_same_chord_cross_ratio :
     ∀ (O A B : Point),
       distance_sq O A = distance_sq O B →

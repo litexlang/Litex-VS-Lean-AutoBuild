@@ -1,8 +1,8 @@
 {
   "definitions": [
-    "# vec 已在种子库 agent_library_seed.txt 中定义，无需重复定义",
-    "# dot 已在种子库 agent_library_seed.txt 中定义，无需重复定义",
-    "# det 已在种子库 agent_library_seed.txt 中定义，无需重复定义",
+    "# vec is already defined in the seed library agent_library_seed.txt; no need to redefine it",
+    "# dot is already defined in the seed library agent_library_seed.txt; no need to redefine it",
+    "# det is already defined in the seed library agent_library_seed.txt; no need to redefine it",
     "have fn distance_sq(a, b cart(R, R)) R = dot(vec(a, b), vec(a, b))",
     "have fn line(a, b, c R: a != 0 or b != 0) power_set(cart(R, R)) = {p cart(R, R): a * p[1] + b * p[2] + c = 0}",
     "have fn line_of(a, b cart(R, R): a != b) power_set(cart(R, R)) = {p cart(R, R): det(vec(a, p), vec(a, b)) = 0}",

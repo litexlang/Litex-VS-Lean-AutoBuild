@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# LeanGeo 自动构建实验 - 一键运行脚本
-# 支持运行Definition和Theorem两个实验
+# LeanGeo Auto-build Experiments - One-click Run Script
+# Supports running both Definition and Theorem experiments
 
-set -e  # 遇到错误立即退出
+set -e  # Exit immediately on error
 
-# 获取脚本所在目录
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# 颜色定义
+# Color definitions
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# 打印带颜色的消息
+# Print colored messages
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -33,26 +33,26 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 打印使用说明
+# Print usage instructions
 print_usage() {
     cat << EOF
-使用方法: $0 [选项]
+Usage: $0 [options]
 
-选项:
-    --test         测试模式（每个实验只运行3个任务）
-    --def-only     只运行Definition实验
-    --thm-only     只运行Theorem实验
-    --help         显示此帮助信息
+Options:
+    --test         Test mode (only run 3 tasks per experiment)
+    --def-only     Only run Definition experiment
+    --thm-only     Only run Theorem experiment
+    --help         Show this help message
 
-示例:
-    $0                    # 完整运行（所有任务）
-    $0 --test            # 测试模式
-    $0 --def-only        # 只运行Definition
-    $0 --thm-only        # 只运行Theorem
+Examples:
+    $0                    # Full run (all tasks)
+    $0 --test            # Test mode
+    $0 --def-only        # Only run Definition
+    $0 --thm-only        # Only run Theorem
 EOF
 }
 
-# 解析命令行参数
+# Parse command line arguments
 TEST_MODE=0
 DEF_ONLY=0
 THM_ONLY=0
@@ -76,115 +76,115 @@ for arg in "$@"; do
             exit 0
             ;;
         *)
-            print_error "未知参数: $arg"
+            print_error "Unknown parameter: $arg"
             print_usage
             exit 1
             ;;
     esac
 done
 
-# 检查Python
+# Check Python
 if ! command -v python3 &> /dev/null; then
-    print_error "Python 3 未安装"
+    print_error "Python 3 not installed"
     exit 1
 fi
 
-# 检查Lean
+# Check Lean
 if ! command -v lean &> /dev/null; then
-    print_error "Lean 未安装，请先运行: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh"
+    print_error "Lean not installed, please run: curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh"
     exit 1
 fi
 
-# 检查API配置
+# Check API configuration
 API_CONFIG="$PROJECT_ROOT/config/api_config.json"
 if [ ! -f "$API_CONFIG" ]; then
-    print_error "API配置文件不存在: $API_CONFIG"
-    print_info "请运行: cp config/api_config.example.json config/api_config.json"
+    print_error "API configuration file does not exist: $API_CONFIG"
+    print_info "Please run: cp config/api_config.example.json config/api_config.json"
     exit 1
 fi
 
-# 检查种子库
+# Check seed library
 SEED_FILE="$PROJECT_ROOT/../LeanGeo/LeanGeoCore/theorem_library_seed.lean"
 if [ ! -f "$SEED_FILE" ]; then
-    print_error "种子库文件不存在: $SEED_FILE"
+    print_error "Seed library file does not exist: $SEED_FILE"
     exit 1
 fi
 
-# 打印配置信息
+# Print configuration information
 print_info "========================================="
-print_info "LeanGeo 自动构建实验系统"
+print_info "LeanGeo Auto-build Experiment System"
 print_info "========================================="
-print_info "项目目录: $PROJECT_ROOT"
-print_info "Python版本: $(python3 --version)"
-print_info "Lean版本: $(lean --version | head -1)"
+print_info "Project directory: $PROJECT_ROOT"
+print_info "Python version: $(python3 --version)"
+print_info "Lean version: $(lean --version | head -1)"
 
 if [ $TEST_MODE -eq 1 ]; then
-    print_warning "测试模式: 每个实验只运行3个任务"
+    print_warning "Test mode: Only run 3 tasks per experiment"
     TASK_LIMIT=3
 else
-    print_info "完整模式: 运行所有任务"
+    print_info "Full mode: Run all tasks"
     TASK_LIMIT=""
 fi
 
-# 记录开始时间
+# Record start time
 START_TIME=$(date +%s)
 
-# 运行Definition实验
+# Run Definition experiment
 if [ $THM_ONLY -eq 0 ]; then
     print_info ""
     print_info "========================================="
-    print_info "1. 运行 Definition 实验"
+    print_info "1. Running Definition experiment"
     print_info "========================================="
-    
+
     if [ $TEST_MODE -eq 1 ]; then
         python3 "$SCRIPT_DIR/run_lean_definitions.py" $TASK_LIMIT
     else
         python3 "$SCRIPT_DIR/run_lean_definitions.py"
     fi
-    
+
     if [ $? -eq 0 ]; then
-        print_success "Definition 实验完成"
+        print_success "Definition experiment completed"
     else
-        print_error "Definition 实验失败"
+        print_error "Definition experiment failed"
         exit 1
     fi
 fi
 
-# 运行Theorem实验
+# Run Theorem experiment
 if [ $DEF_ONLY -eq 0 ]; then
     print_info ""
     print_info "========================================="
-    print_info "2. 运行 Theorem 实验"
+    print_info "2. Running Theorem experiment"
     print_info "========================================="
-    
+
     if [ $TEST_MODE -eq 1 ]; then
         python3 "$SCRIPT_DIR/run_lean_theorems.py" $TASK_LIMIT
     else
         python3 "$SCRIPT_DIR/run_lean_theorems.py"
     fi
-    
+
     if [ $? -eq 0 ]; then
-        print_success "Theorem 实验完成"
+        print_success "Theorem experiment completed"
     else
-        print_error "Theorem 实验失败"
+        print_error "Theorem experiment failed"
         exit 1
     fi
 fi
 
-# 计算总耗时
+# Calculate total duration
 END_TIME=$(date +%s)
 ELAPSED=$((END_TIME - START_TIME))
 ELAPSED_MIN=$((ELAPSED / 60))
 ELAPSED_SEC=$((ELAPSED % 60))
 
-# 打印总结
+# Print summary
 print_info ""
 print_info "========================================="
-print_success "所有实验完成！"
+print_success "All experiments completed!"
 print_info "========================================="
-print_info "总耗时: ${ELAPSED_MIN}分${ELAPSED_SEC}秒"
+print_info "Total duration: ${ELAPSED_MIN}min ${ELAPSED_SEC}sec"
 print_info ""
-print_info "输出目录:"
+print_info "Output directory:"
 if [ $THM_ONLY -eq 0 ]; then
     LATEST_DEF=$(ls -t "$PROJECT_ROOT/lean_auto_validated_250tasks/definitions_only" 2>/dev/null | head -1)
     if [ -n "$LATEST_DEF" ]; then

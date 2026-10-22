@@ -1,27 +1,27 @@
 -- ============================================================
--- LeanGeo AutoBuild — REPL session 导出库
--- committed 条目数: 36
+-- LeanGeo AutoBuild — REPL session export library
+-- Number of committed entries: 36
 -- ============================================================
 
--- LeanGeo 基础库：Definition种子库
--- 对应 Litex 的 definition_library_seed.lit
+-- LeanGeo base library: Definition seed library
+-- Corresponds to Litex's definition_library_seed.lit
 
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
--- 点是实数坐标对
+-- A point is a pair of real coordinates
 def Point := ℝ × ℝ
 
--- 向量：从A到B
+-- Vector: from A to B
 def vec (A B : Point) : Point := (B.1 - A.1, B.2 - A.2)
 
--- 点积
+-- Dot product
 def dot (u v : Point) : ℝ := u.1 * v.1 + u.2 * v.2
 
--- 行列式（2D叉积的z分量）
+-- Determinant (the z-component of the 2D cross product)
 def det (u v : Point) : ℝ := u.1 * v.2 - u.2 * v.1
 
--- ---------- session 已提交内容 ----------
+-- ---------- Content committed in this session ----------
 
 def distance_sq (A B : Point) : ℝ :=
   dot (vec A B) (vec A B)

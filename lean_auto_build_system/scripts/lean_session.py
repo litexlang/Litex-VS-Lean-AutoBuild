@@ -1,13 +1,13 @@
 """
-Lean 持久会话验证：用 leanprover-community/repl（JSON stdin/stdout）做增量验证。
+Lean persistent session validation: incremental validation using leanprover-community/repl (JSON stdin/stdout).
 
-协议：
-  启动：`lake env <repl_bin>`（cwd = Lean 工程，带 Mathlib 搜索路径）
-  命令：一行 JSON + 空行；响应：JSON（可多行）+ 空行
-  成功：无 severity=error 的 message → 采纳返回的 env
-  失败：不切换 env（≈ Litex try RolledBack）；成功则 env 前进（≈ Committed）
+Protocol:
+  Launch: `lake env <repl_bin>` (cwd = Lean project, with Mathlib search path)
+  Command: one line JSON + blank line; response: JSON (may be multiline) + blank line
+  Success: no message with severity=error → adopt returned env
+  Failure: do not switch env (≈ Litex try RolledBack); success advances env (≈ Committed)
 
-注意：REPL 在 elaborates 失败时仍可能返回新的 env 编号；本模块故意忽略该编号。
+Note: REPL may still return a new env number when elaboration fails; this module intentionally ignores that number.
 """
 
 from __future__ import annotations
@@ -22,10 +22,10 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# 仓库内预构建的 REPL（lean_auto_build_system/.tools/repl）
+# Pre-built REPL in repository (lean_auto_build_system/.tools/repl)
 _DEFAULT_REPL_REL = Path(__file__).resolve().parent / ".tools" / "repl" / ".lake" / "build" / "bin" / "repl"
 
-# 空 LeanGeo 时回退到已装 Mathlib 的目录
+# Fallback to directory with Mathlib when LeanGeo is empty
 _FALLBACK_LEAN_PROJECTS = [
     Path(__file__).resolve().parents[2] / "LeanGeo",
 ]
@@ -69,8 +69,8 @@ def find_repl_bin() -> Optional[Path]:
 
 def resolve_lean_project_dir(preferred: Optional[str | Path] = None) -> Path:
     """
-    选定带 Mathlib 的 Lean 工程目录。
-    优先：显式路径 / LEAN_PROJECT_DIR / LeanGeo（若有 lakefile）/ golitex/lean。
+    Select Lean project directory with Mathlib.
+    Priority: explicit path / LEAN_PROJECT_DIR / LeanGeo (if lakefile exists) / golitex/lean.
     """
     env = os.environ.get("LEAN_PROJECT_DIR")
     candidates: List[Path] = []
@@ -96,7 +96,7 @@ def resolve_lean_project_dir(preferred: Optional[str | Path] = None) -> Path:
             continue
         if (rp / "lakefile.toml").exists() or (rp / "lakefile.lean").exists():
             return rp
-    # 最后仍返回 preferred/LeanGeo，让上层报错更清晰
+    # Still return preferred/LeanGeo at the end, for clearer error messages upstream
     if preferred:
         return Path(preferred)
     return script_parent.parent / "LeanGeo"
@@ -113,7 +113,7 @@ def extract_lean_code(agent_output: str) -> str:
 
 
 def strip_imports_for_incremental(code: str) -> str:
-    """已有 env 时不能再 import；去掉顶层 import / open 行（保留注释与代码）。"""
+    """Cannot import again when env already exists; remove top-level import/open lines (keep comments and code)."""
     lines = code.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     out: List[str] = []
     for line in lines:
@@ -125,7 +125,7 @@ def strip_imports_for_incremental(code: str) -> str:
 
 
 def lean_code_is_noop(code: str) -> bool:
-    """纯空白/行注释：不送 REPL（避免 unexpected end of input）。"""
+    """Pure whitespace/line comments: don't send to REPL (avoid unexpected end of input)."""
     text = code.replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
         return True
@@ -138,7 +138,7 @@ def lean_code_is_noop(code: str) -> bool:
 
 
 def should_record_commit(code: str) -> bool:
-    """#check / #print 等查询成功也不写入累积库。"""
+    """Successful #check / #print queries also not written to accumulated library."""
     if lean_code_is_noop(code):
         return False
     body = strip_imports_for_incremental(code)
@@ -159,37 +159,37 @@ def _messages_have_error(resp: Dict[str, Any]) -> bool:
 
 
 def _format_repl_errors(resp: Dict[str, Any]) -> str:
-    """从REPL响应中提取详细错误信息"""
-    parts: List[str] = ["❌ 验证失败（env 未前进，会话继续）"]
+    """Extract detailed error information from REPL response"""
+    parts: List[str] = ["❌ Validation failed (env not advanced, session continues)"]
 
     for msg in resp.get("messages") or []:
         if not isinstance(msg, dict) or msg.get("severity") != "error":
             continue
 
-        # 提取位置信息
+        # Extract position information
         pos = msg.get("pos") or {}
         line = pos.get("line", "?")
         col = pos.get("column", "?")
 
-        # 提取错误数据
+        # Extract error data
         data = (msg.get("data") or "").strip()
 
-        # 格式化错误信息
-        error_parts = [f"❌ 编译错误 (行 {line}:{col}):"]
+        # Format error message
+        error_parts = [f"❌ Compilation error (line {line}:{col}):"]
 
-        # 分割错误信息，提取关键部分
+        # Split error message, extract key parts
         if data:
             lines = data.split('\n')
-            # 第一行通常是错误类型
+            # First line is usually the error type
             if lines:
                 error_parts.append(lines[0])
 
-            # 提取详细信息
+            # Extract detailed information
             detail_lines = []
             for i, line_text in enumerate(lines[1:], 1):
                 stripped = line_text.strip()
                 if stripped:
-                    # 识别重要的错误信息
+                    # Identify important error messages
                     if stripped.startswith('⊢') or stripped.startswith('|') or stripped.startswith('expected'):
                         detail_lines.append(f"  {stripped}")
                     else:
@@ -200,16 +200,16 @@ def _format_repl_errors(resp: Dict[str, Any]) -> str:
 
         parts.append("\n".join(error_parts))
 
-    # 如果没有提取到有用信息，显示原始响应
+    # If no useful information extracted, show raw response
     if len(parts) == 1:
         raw = json.dumps(resp, ensure_ascii=False)[:800]
-        parts.append(f"原始响应:\n{raw}")
+        parts.append(f"Raw response:\n{raw}")
 
     return "\n\n".join(parts)
 
 
 class LeanPersistentSession:
-    """长生命周期 lake env + leanprover-community/repl 进程。"""
+    """Long-lived lake env + leanprover-community/repl process."""
 
     def __init__(
         self,
@@ -248,12 +248,12 @@ class LeanPersistentSession:
 
         seed = self.seed_source.strip()
         if seed:
-            # 第一次加载种子库时保留import（因为use_env=False）
-            # REPL只能在没有env时使用import语句
+            # Keep imports when loading seed library for the first time (because use_env=False)
+            # REPL can only use import statements when there is no env
             ok, msg, resp = self.run_command(seed, use_env=False)
             if not ok:
                 self.close()
-                raise RuntimeError(f"seed 加载失败: {msg}\n{json.dumps(resp, ensure_ascii=False)[:500]}")
+                raise RuntimeError(f"Seed loading failed: {msg}\n{json.dumps(resp, ensure_ascii=False)[:500]}")
 
     def _enqueue_stdout(self) -> None:
         assert self.proc and self.proc.stdout
@@ -267,7 +267,7 @@ class LeanPersistentSession:
         if not self.proc or not self.proc.stderr:
             return ""
         try:
-            # 非阻塞尽量读；进程活着时 stderr 可能阻塞，限制时间
+            # Non-blocking read as much as possible; stderr may block while process is alive, limit time
             chunks: List[str] = []
             self.proc.stderr.flush()
             return "".join(chunks)
@@ -275,7 +275,7 @@ class LeanPersistentSession:
             return ""
 
     def _read_json_response(self, timeout: float) -> Optional[Dict[str, Any]]:
-        """读到空行分隔的一块文本，再 json.loads（支持多行 pretty JSON）。"""
+        """Read text block until blank line, then json.loads (supports multiline pretty JSON)."""
         deadline = time.time() + timeout
         buf: List[str] = []
         while time.time() < deadline:
@@ -298,7 +298,7 @@ class LeanPersistentSession:
                 try:
                     return json.loads(text)
                 except json.JSONDecodeError:
-                    # 可能还不完整；继续攒（极少见）
+                    # May not be complete yet; continue accumulating (very rare)
                     buf.append(line)
                     continue
             buf.append(line)
@@ -308,12 +308,12 @@ class LeanPersistentSession:
         self, cmd: str, *, use_env: bool = True
     ) -> Tuple[bool, str, Dict[str, Any]]:
         if not self.alive or not self.proc or not self.proc.stdin:
-            return False, "❌ REPL session 未启动", {}
+            return False, "❌ REPL session not started", {}
 
         payload: Dict[str, Any] = {"cmd": cmd}
         if use_env:
             if self.env is None:
-                return False, "❌ REPL env 尚未建立（seed 未加载？）", {}
+                return False, "❌ REPL env not established (seed not loaded?)", {}
             payload["env"] = self.env
 
         try:
@@ -321,7 +321,7 @@ class LeanPersistentSession:
             self.proc.stdin.flush()
         except BrokenPipeError:
             self.alive = False
-            return False, "❌ REPL 管道断开", {}
+            return False, "❌ REPL pipe broken", {}
 
         resp = self._read_json_response(timeout=self.cmd_timeout)
         if resp is None:
@@ -329,19 +329,19 @@ class LeanPersistentSession:
             err = ""
             if self.proc and self.proc.stderr:
                 try:
-                    # 进程可能已挂，尽量读一点 stderr
+                    # Process may be hung, try to read a bit of stderr
                     pass
                 except Exception:
                     pass
-            return False, f"❌ 编译超时（{int(self.cmd_timeout)}秒）或 REPL 无响应{err}", {}
+            return False, f"❌ Compilation timeout ({int(self.cmd_timeout)}s) or REPL no response{err}", {}
 
         if _messages_have_error(resp):
-            # 关键：不采纳 resp["env"]
+            # Critical: do not adopt resp["env"]
             return False, _format_repl_errors(resp), resp
 
         if "env" in resp:
             self.env = resp["env"]
-        return True, "✅ 编译通过（REPL env committed）", resp
+        return True, "✅ Compilation passed (REPL env committed)", resp
 
     def close(self) -> None:
         self.alive = False
@@ -361,7 +361,7 @@ class LeanPersistentSession:
                 except Exception:
                     pass
         self.proc = None
-        # 清空队列残渣
+        # Clear queue residue
         while not self._stdout_q.empty():
             try:
                 self._stdout_q.get_nowait()
@@ -371,11 +371,11 @@ class LeanPersistentSession:
 
 class SessionBackedValidator:
     """
-    给实验 runner 用的验证器：
-    - seed 启动时 commit 一次
-    - validate(code) 只发增量；成功前进 env，失败回滚（不切换 env）
-    - library_context 参数保留兼容，会话模式下忽略
-    - REPL 不可用时回退到 lake env lean 整文件
+    Validator for experiment runner:
+    - Seed commits once on startup
+    - validate(code) only sends increments; success advances env, failure rolls back (does not switch env)
+    - library_context parameter kept for compatibility, ignored in session mode
+    - Falls back to lake env lean whole file when REPL unavailable
     """
 
     def __init__(
@@ -396,21 +396,21 @@ class SessionBackedValidator:
         if self.lake_bin and self.repl_bin:
             print(f"✅ lake: {self.lake_bin}")
             print(f"✅ Lean REPL: {self.repl_bin}")
-            print(f"✅ Lean 工程: {self.lean_project_dir}")
+            print(f"✅ Lean project: {self.lean_project_dir}")
             try:
                 self._ensure_session()
                 self.mode = "repl"
-                print("✅ 验证模式: Lean REPL session（增量 env）")
+                print("✅ Validation mode: Lean REPL session (incremental env)")
             except Exception as e:
-                print(f"⚠️  REPL session 启动失败，回退整文件: {e}")
+                print(f"⚠️  REPL session startup failed, falling back to whole file: {e}")
                 self.mode = "file"
         elif self.lake_bin:
             print(f"✅ lake: {self.lake_bin}")
-            print(f"⚠️  未找到 REPL（可设 LEAN_REPL_BIN），回退 lake env lean 整文件")
-            print(f"📚 Lean 工程: {self.lean_project_dir}")
+            print(f"⚠️  REPL not found (can set LEAN_REPL_BIN), falling back to lake env lean whole file")
+            print(f"📚 Lean project: {self.lean_project_dir}")
             self.mode = "file"
         else:
-            print("⚠️  lake 未找到，将无法自动验证")
+            print("⚠️  lake not found, will not be able to auto-validate")
 
     @property
     def lake_bin_ok(self) -> bool:
@@ -420,7 +420,7 @@ class SessionBackedValidator:
         if self.session and self.session.alive and self.session.env is not None:
             return
         if not self.lake_bin or not self.repl_bin:
-            raise RuntimeError("lake/repl 不可用")
+            raise RuntimeError("lake/repl unavailable")
         self.session = LeanPersistentSession(
             lean_project_dir=self.lean_project_dir,
             lake_bin=self.lake_bin,
@@ -435,7 +435,7 @@ class SessionBackedValidator:
                 continue
             ok, msg, _ = self.session.run_command(body, use_env=True)
             if not ok:
-                print(f"⚠️  重放已提交代码失败: {msg[:200]}")
+                print(f"⚠️  Replay of committed code failed: {msg[:200]}")
                 break
 
     def extract_lean_code(self, agent_output: str) -> str:
@@ -443,7 +443,7 @@ class SessionBackedValidator:
 
     def validate(self, code: str, library_context: str = "") -> Tuple[Optional[bool], str, Dict[str, Any]]:
         if self.mode == "none":
-            return None, "lake 不可用", {}
+            return None, "lake unavailable", {}
 
         if self.mode == "repl":
             return self._validate_repl(code)
@@ -452,21 +452,21 @@ class SessionBackedValidator:
 
     def _validate_repl(self, code: str) -> Tuple[Optional[bool], str, Dict[str, Any]]:
         if lean_code_is_noop(code):
-            # 空/纯注释：视为通过，不推进（与「种子已有、无需再定义」一致）
-            return True, "✅ 编译通过（空增量 / 仅注释，env 不变）", {}
+            # Empty/pure comments: consider passed, do not advance (consistent with "seed already has it, no need to redefine")
+            return True, "✅ Compilation passed (empty increment / comments only, env unchanged)", {}
 
         body = strip_imports_for_incremental(code)
         if not body.strip():
-            return True, "✅ 编译通过（空增量 / 仅注释，env 不变）", {}
+            return True, "✅ Compilation passed (empty increment / comments only, env unchanged)", {}
 
         try:
             self._ensure_session()
         except Exception as e:
-            return None, f"⚠️  无法启动 Lean REPL session: {e}", {}
+            return None, f"⚠️  Cannot start Lean REPL session: {e}", {}
 
         assert self.session is not None
         ok, msg, resp = self.session.run_command(body, use_env=True)
-        if not ok and ("无响应" in msg or "管道断开" in msg or "超时" in msg):
+        if not ok and ("no response" in msg or "pipe broken" in msg or "timeout" in msg):
             try:
                 if self.session:
                     self.session.close()
@@ -475,7 +475,7 @@ class SessionBackedValidator:
                 assert self.session is not None
                 ok, msg, resp = self.session.run_command(body, use_env=True)
             except Exception as e:
-                return False, f"{msg}\n重启 REPL 失败: {e}", {}
+                return False, f"{msg}\nREPL restart failed: {e}", {}
         if ok and should_record_commit(code):
             self.committed.append(code)
         return ok, msg, resp
@@ -484,7 +484,7 @@ class SessionBackedValidator:
         import tempfile
 
         if not self.lake_bin:
-            return None, "lake 不可用", {}
+            return None, "lake unavailable", {}
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".lean", delete=False, encoding="utf-8"
@@ -503,12 +503,12 @@ class SessionBackedValidator:
             output = (result.stdout or "") + (result.stderr or "")
             if result.returncode == 0 and "error:" not in output.lower():
                 self.committed.append(code)
-                return True, "✅ 编译通过（整文件回退）", {}
+                return True, "✅ Compilation passed (whole file fallback)", {}
             return False, self._parse_lean_file_errors(output), {}
         except subprocess.TimeoutExpired:
-            return False, f"❌ 编译超时（{int(self.cmd_timeout)}秒）", {}
+            return False, f"❌ Compilation timeout ({int(self.cmd_timeout)}s)", {}
         except Exception as e:
-            return False, f"❌ 验证失败: {e}", {}
+            return False, f"❌ Validation failed: {e}", {}
         finally:
             try:
                 os.unlink(temp_file)
@@ -525,7 +525,7 @@ class SessionBackedValidator:
             error_match = re.match(r"^(.+):(\d+):(\d+): error: (.+)$", line)
             if error_match:
                 _file, line_num, col, error_type = error_match.groups()
-                error_parts = [f"❌ 编译错误 (行 {line_num}:{col}): {error_type}"]
+                error_parts = [f"❌ Compilation error (line {line_num}:{col}): {error_type}"]
                 i += 1
                 details: List[str] = []
                 while i < len(lines):
@@ -543,7 +543,7 @@ class SessionBackedValidator:
             i += 1
         if errors:
             return "\n\n".join(errors)
-        return f"❌ 编译失败:\n{output[:500]}"
+        return f"❌ Compilation failed:\n{output[:500]}"
 
     def close(self) -> None:
         if self.session:
@@ -553,13 +553,13 @@ class SessionBackedValidator:
     def export_session_library(self, seed_source: str) -> str:
         parts = [
             "-- ============================================================",
-            "-- LeanGeo AutoBuild — REPL session 导出库",
-            f"-- committed 条目数: {len(self.committed)}",
+            "-- LeanGeo AutoBuild — REPL session export library",
+            f"-- committed entries count: {len(self.committed)}",
             "-- ============================================================",
             "",
             seed_source.rstrip(),
             "",
-            "-- ---------- session 已提交内容 ----------",
+            "-- ---------- session committed content ----------",
             "",
         ]
         for block in self.committed:
@@ -568,5 +568,5 @@ class SessionBackedValidator:
         return "\n".join(parts).rstrip() + "\n"
 
 
-# 兼容旧名
+# Compatible old name
 LeanValidator = SessionBackedValidator

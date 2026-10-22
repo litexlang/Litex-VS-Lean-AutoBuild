@@ -1,3 +1,3 @@
-# LitexGeo 信任债（axiom）清单
+# LitexGeo Axiom Debt List
 
-共 0 条。把对应 `axiom` 改回 `thm` 并补证明即可还债。
+Total: 0 items. To repay the debt, change the corresponding `axiom` back to `thm` and add proofs.

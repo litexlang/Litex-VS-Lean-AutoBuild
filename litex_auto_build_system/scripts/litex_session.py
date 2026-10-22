@@ -1,11 +1,11 @@
 """
-Litex 持久会话验证：用 `litex -isolated -session` + `try:` 做增量验证。
+Litex Persistent session validation: using `litex -isolated -session` + `try:` for incremental validation.
 
-协议（golitex framed session）：
-  启动后读 ready 事件；
-  发送：run <id> <utf8字节数>\\n<source>；
-  失败的 try 会 RolledBack，会话可继续；
-  成功的 try 会 Committed，定义/定理进入环境。
+Protocol (golitex framed session):
+  Read ready event after startup;
+  Send: run <id> <utf8byte count>\\n<source>;
+  Failed try will be RolledBack, session can continue;
+  Successful try will be Committed, definition/theorem enters environment.
 """
 
 from __future__ import annotations
@@ -23,14 +23,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 def find_litex_bin() -> Optional[str]:
-    """按常见路径查找支持 -session 的 litex。"""
-    # 构建相对路径
+    """Find litex that supports -session by common paths."""
+    # Build relative path
     script_dir = Path(__file__).resolve().parent
     relative_litex = script_dir.parent.parent / "LitexGeo" / "golitex" / "litex_0.9.116-beta_darwin_arm64" / "litex"
 
     candidates = [
         os.environ.get("LITEX_BIN"),
-        str(relative_litex),  # 使用相对路径
+        str(relative_litex),  # use relative path
         str(Path(__file__).resolve().parents[2] / "LitexGeo" / "golitex" / "litex_0.9.116-beta_darwin_arm64" / "litex"),
         "/opt/homebrew/bin/litex",
         "litex",
@@ -71,7 +71,7 @@ def indent_block(source: str, spaces: int = 4) -> str:
 
 
 def wrap_in_try(source: str) -> str:
-    """把候选代码包进 try:，失败回滚、成功提交。"""
+    """wrap candidate code in try:，failed rollback, successful commit。"""
     body = source.strip("\n")
     if not body.strip():
         return "try:\n    1 = 1\n"
@@ -90,7 +90,7 @@ def extract_litex_code(agent_output: str) -> str:
 
 def thm_to_axiom(code: str) -> Optional[str]:
     """
-    把 thm 声明改成 axiom：保留 `? forall ...` 目标块，去掉证明体。
+    Convert thm declaration to axiom：keep `? forall ...` goal block，remove proof body。
     """
     text = code.strip()
     if not text.startswith("thm "):
@@ -102,7 +102,7 @@ def thm_to_axiom(code: str) -> Optional[str]:
         return None
     name = name_match.group(1)
 
-    # 找到 ? 行及其缩进；目标继续于更深缩进；回到同级缩进即证明体
+    # find ? line and its indentation；goal continues at deeper indentation；return to same indentation level means proof body
     q_idx = None
     q_indent = None
     for i, line in enumerate(lines[1:], start=1):
@@ -128,10 +128,10 @@ def thm_to_axiom(code: str) -> Optional[str]:
 
 
 def _format_rollback_error(event: Dict[str, Any]) -> str:
-    """从 session result / RolledBack 结构提取可读错误。"""
-    parts: List[str] = ["❌ 验证失败（try 已回滚，会话继续）"]
+    """Extract readable error from session result / RolledBack structure。"""
+    parts: List[str] = ["❌ validation failed (try rolled back, session continues)"]
 
-    # 处理 event: "block" 类型的错误（包含trace字段）
+    # Handle event: "block" type error (contains trace field)
     if event.get("event") == "block" and event.get("ok") is False:
         trace_str = event.get("trace", "")
         if trace_str:
@@ -141,18 +141,18 @@ def _format_rollback_error(event: Dict[str, Any]) -> str:
                 line = trace.get("line", "?")
                 message = trace.get("message", "")
                 if message:
-                    parts.append(f"\n({error_type}, 行 {line}):\n{message}")
+                    parts.append(f"\n({error_type}, line {line}):\n{message}")
                 else:
-                    parts.append(f"\n({error_type}, 行 {line})")
+                    parts.append(f"\n({error_type}, line {line})")
             except json.JSONDecodeError:
-                parts.append(f"\n错误信息: {trace_str}")
+                parts.append(f"\nerror message: {trace_str}")
 
-    # 处理标准的 statement_results 结构
+    # Handle standard statement_results structure
     for stmt in event.get("statement_results") or []:
         result = stmt.get("result") or {}
         execution = result.get("execution") or {}
         if execution.get("kind") != "RolledBack":
-            # 也可能直接在 nested error
+            # may also be directly in nested error
             pass
         err = execution.get("error") or event.get("error") or {}
         if isinstance(err, dict):
@@ -160,19 +160,19 @@ def _format_rollback_error(event: Dict[str, Any]) -> str:
             kind = err.get("kind") or err.get("error_type") or "error"
             line = err.get("line", "?")
             if msg:
-                parts.append(f"\n({kind}, 行 {line}):\n{msg}")
+                parts.append(f"\n({kind}, line {line}):\n{msg}")
             if "statement" in err:
-                parts.append(f"\n失败的语句:\n{err['statement']}")
+                parts.append(f"\nfailed statement:\n{err['statement']}")
             if "failed_goal" in err:
-                parts.append(f"\n失败的目标:\n{err['failed_goal']}")
+                parts.append(f"\nfailed goal:\n{err['failed_goal']}")
             unknown = err.get("unknown_result") or {}
             if isinstance(unknown, dict):
                 if "type" in unknown:
-                    parts.append(f"\n原因类型: {unknown['type']}")
+                    parts.append(f"\nReason type: {unknown['type']}")
                 if "goal" in unknown:
-                    parts.append(f"\n未知目标: {unknown['goal']}")
+                    parts.append(f"\nUnknown goal: {unknown['goal']}")
 
-            # 递归提取所有 previous_error（完整的错误链，和旧系统一样）
+            # recursively extract all previous_error（complete error chain，same as old system）
             def extract_previous_errors(err_obj, depth=1):
                 if "previous_error" not in err_obj:
                     return []
@@ -180,37 +180,37 @@ def _format_rollback_error(event: Dict[str, Any]) -> str:
                 prev_errors = []
                 prev = err_obj["previous_error"]
 
-                # 提取这一层的信息
+                # extract this layer information
                 if "message" in prev:
-                    prefix = "详细原因" if depth == 1 else f"原因{depth}"
+                    prefix = "Detailed reason" if depth == 1 else f"Reason{depth}"
                     prev_errors.append(f"\n{prefix}: {prev['message']}")
 
                 if "failed_goal" in prev and "failed_goal" not in err_obj:
-                    prev_errors.append(f"\n失败的目标:\n{prev['failed_goal']}")
+                    prev_errors.append(f"\nfailed goal:\n{prev['failed_goal']}")
 
                 if "unknown_result" in prev:
                     unknown_prev = prev["unknown_result"]
                     if isinstance(unknown_prev, dict):
                         if "type" in unknown_prev:
-                            prev_errors.append(f"\n原因类型: {unknown_prev['type']}")
+                            prev_errors.append(f"\nReason type: {unknown_prev['type']}")
 
-                # 递归提取更深层
+                # recursively extract deeper layers
                 prev_errors.extend(extract_previous_errors(prev, depth + 1))
                 return prev_errors
 
-            # 添加所有 previous_error 信息
+            # Add all previous_error information
             parts.extend(extract_previous_errors(err))
-        # 兼容 statement_results 顶层直接带 failed_goal 的展示字段
+        # Compatible with statement_results top-level failed_goal display field
         if "failed_goal" in result:
-            parts.append(f"\n失败的目标:\n{result['failed_goal']}")
+            parts.append(f"\nfailed goal:\n{result['failed_goal']}")
 
-    # 处理event级别的error字段
+    # Handle event-level error field
     if event.get("error"):
         parts.append(f"\nerror: {json.dumps(event['error'], ensure_ascii=False)[:800]}")
 
-    # 如果没有提取到任何有用信息，才dump整个event（但只作为最后手段）
+    # Only dump entire event if no useful information extracted (as last resort)
     if len(parts) == 1:
-        parts.append("\n（原始错误信息）：\n" + json.dumps(event, ensure_ascii=False)[:1200])
+        parts.append("\n（raw error message）：\n" + json.dumps(event, ensure_ascii=False)[:1200])
 
     return "".join(parts)
 
@@ -233,7 +233,7 @@ def _is_committed(event: Dict[str, Any]) -> bool:
 
 
 class LitexPersistentSession:
-    """长生命周期 litex -session 进程。"""
+    """Long-lived litex -session process."""
 
     def __init__(self, litex_bin: str, seed_source: str, frame_timeout: float = 120.0):
         self.litex_bin = litex_bin
@@ -269,7 +269,7 @@ class LitexPersistentSession:
         if not ready or ready.get("event") != "ready":
             err = self._drain_stderr()
             self.close()
-            raise RuntimeError(f"litex session 未能 ready: {ready}; stderr={err[:500]}")
+            raise RuntimeError(f"litex session failed to ready: {ready}; stderr={err[:500]}")
         self.alive = True
 
     def _enqueue_stdout(self) -> None:
@@ -306,17 +306,17 @@ class LitexPersistentSession:
             try:
                 return json.loads(line)
             except json.JSONDecodeError:
-                # 非 JSON 行跳过
+                # skip non-JSON lines
                 continue
         return None
 
     def run_source(self, source: str, frame_id: Optional[str] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """
-        在会话中跑一段源码（调用方决定是否包 try）。
-        返回 (committed_ok, message, raw_event)
+        Run a piece of source code in the session (caller decides whether to wrap in try).
+        Returns (committed_ok, message, raw_event)
         """
         if not self.alive or not self.proc or not self.proc.stdin:
-            return False, "❌ session 未启动", {}
+            return False, "❌ session not started", {}
 
         self._frame_counter += 1
         fid = frame_id or f"f{self._frame_counter}"
@@ -328,22 +328,22 @@ class LitexPersistentSession:
             self.proc.stdin.flush()
         except BrokenPipeError:
             self.alive = False
-            return False, "❌ session 管道断开", {}
+            return False, "❌ session pipe broken", {}
 
         event = self._read_json(timeout=self.frame_timeout)
         if event is None:
             self.alive = False
-            return False, f"❌ 编译超时（{int(self.frame_timeout)}秒）或 session 无响应", {}
+            return False, f"❌ compilation timeout（{int(self.frame_timeout)}seconds）or session not responding", {}
 
         if event.get("event") == "skipped":
             self.alive = False
-            return False, "❌ session 已因先前失败而 skipped，需要重启", event
+            return False, "❌ session already skipped due to previous failure，needs restart", event
 
         if event.get("event") == "protocol_error":
-            return False, f"❌ session 协议错误:\n{json.dumps(event, ensure_ascii=False)[:800]}", event
+            return False, f"❌ session protocol error:\n{json.dumps(event, ensure_ascii=False)[:800]}", event
 
         if _is_committed(event):
-            return True, "✅ 编译通过（session try committed）", event
+            return True, "✅ compilation passed（session try committed）", event
 
         return False, _format_rollback_error(event), event
 
@@ -377,10 +377,10 @@ class LitexPersistentSession:
 
 class SessionBackedValidator:
     """
-    给实验 runner 用的验证器：
-    - 成功代码通过 try 提交进持久会话
-    - 失败 try 回滚，不污染库
-    - 可选：最终失败时 axiom 顶上
+    validator for experiment runner：
+    - successful code committed via try into persistent session
+    - failed try rollback，does not pollute library
+    - optional: use axiom as fallback when finally failed
     """
 
     def __init__(self, seed_source: str, frame_timeout: float = 120.0):
@@ -388,13 +388,13 @@ class SessionBackedValidator:
         self.seed_source = seed_source
         self.frame_timeout = frame_timeout
         self.session: Optional[LitexPersistentSession] = None
-        self.committed: List[str] = []  # 已成功提交的定义/定理（含 axiom）
+        self.committed: List[str] = []  # successfully committed definitions/theorem（includes axiom）
         self.axioms: List[str] = []
         if self.litex_bin:
-            print(f"✅ litex 编译器已加载（session 模式）: {self.litex_bin}")
+            print(f"✅ litex compiler loaded (session mode): {self.litex_bin}")
             self._ensure_session()
         else:
-            print("⚠️  未找到支持 -session 的 litex，将无法自动验证")
+            print("⚠️  did not find litex supporting -session, will not be able to auto-validate")
 
     def _ensure_session(self) -> None:
         if self.session and self.session.alive:
@@ -408,7 +408,7 @@ class SessionBackedValidator:
         for code in self.committed:
             ok, msg, _ = self.session.run_try(code)
             if not ok:
-                print(f"⚠️  重放已提交代码失败: {msg[:200]}")
+                print(f"⚠️  replaying committed code failed: {msg[:200]}")
                 break
 
     def extract_litex_code(self, agent_output: str) -> str:
@@ -416,19 +416,19 @@ class SessionBackedValidator:
 
     def validate(self, code: str, library_context: str = "") -> Tuple[Optional[bool], str]:
         """
-        library_context 参数保留兼容；会话模式下忽略（库已在进程内）。
+        library_context parameter kept for compatibility; ignored in session mode (library already in process).
         """
-        del library_context  # 会话内已有累积状态
+        del library_context  # session already has accumulated state
         if not self.litex_bin:
-            return None, "litex 编译器不可用"
+            return None, "litex compiler unavailable"
         try:
             self._ensure_session()
         except Exception as e:
-            return None, f"⚠️  无法启动 litex session: {e}"
+            return None, f"⚠️  Cannot start litex session: {e}"
 
         assert self.session is not None
         ok, msg, _event = self.session.run_try(code)
-        if not ok and ("skipped" in msg or "无响应" in msg or "管道断开" in msg):
+        if not ok and ("skipped" in msg or "not responding" in msg or "pipe broken" in msg):
             try:
                 if self.session:
                     self.session.close()
@@ -437,21 +437,21 @@ class SessionBackedValidator:
                 assert self.session is not None
                 ok, msg, _event = self.session.run_try(code)
             except Exception as e:
-                return False, f"{msg}\n重启 session 失败: {e}"
+                return False, f"{msg}\nrestart session failed: {e}"
         if ok:
             self.committed.append(code)
         return ok, msg
 
     def commit_axiom_fallback(self, failed_code: str) -> Tuple[bool, str, Optional[str]]:
-        """证不出时把 thm 改成 axiom 提交。返回 (ok, msg, axiom_code)。"""
+        """Convert thm to axiom and submit when proof fails. Returns (ok, msg, axiom_code)."""
         axiom = thm_to_axiom(failed_code)
         if not axiom:
-            return False, "无法从失败代码生成 axiom", None
+            return False, "cannot generate axiom from failed code", None
         ok, msg = self.validate(axiom)
         if ok:
             self.axioms.append(axiom)
-            return True, f"✅ 已用 axiom 顶上（信任债 +1）\n{axiom}", axiom
-        return False, f"axiom 提交失败: {msg}", axiom
+            return True, f"✅ Used axiom as fallback (trust debt +1)\n{axiom}", axiom
+        return False, f"axiom commitfailed: {msg}", axiom
 
     def close(self) -> None:
         if self.session:
@@ -460,28 +460,28 @@ class SessionBackedValidator:
 
     def export_session_library(self, seed_source: str) -> str:
         """
-        导出当前 session 累积库：种子 + 按提交顺序的全部 committed 代码。
-        便于跑完后打开改 axiom。
+        Export current session accumulated library: seed + all committed code in submission order.
+        Convenient to open and modify axiom after run.
         """
         parts = [
             "# ============================================================",
-            "# LitexGeo AutoBuild — session 导出库",
-            f"# committed 条目数: {len(self.committed)}",
-            f"# axiom 债务数: {len(self.axioms)}",
-            "# 用法: 搜 `^axiom ` 找到信任债，改回 thm + 证明即可。",
+            "# LitexGeo AutoBuild — session exported library",
+            f"# committed entries: {len(self.committed)}",
+            f"# axiom debt: {len(self.axioms)}",
+            "# Usage: search `^axiom ` to find trust debt, change back to thm + proof.",
             "# ============================================================",
             "",
             seed_source.rstrip(),
             "",
         ]
         if self.axioms:
-            parts.append("# ---------- 信任债索引（axiom）----------")
+            parts.append("# ---------- Trust Debt Index (axiom) ----------")
             for i, ax in enumerate(self.axioms, 1):
                 first = next((ln.strip() for ln in ax.splitlines() if ln.strip()), "")
                 parts.append(f"# {i}. {first}")
             parts.append("")
 
-        parts.append("# ---------- session 已提交内容（定义 / thm / axiom）----------")
+        parts.append("# ---------- session committed content (definition / thm / axiom) ----------")
         parts.append("")
         for block in self.committed:
             parts.append(block.rstrip())
