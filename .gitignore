@@ -9,13 +9,10 @@ Plans/
 # API configuration (contains secrets)
 **/api_config.json
 
-# 忽略LitexGeo和LeanGeo的内容，但保留目录本身
+# Ignore LitexGeo and LeanGeo contents, keep only directory structure
 LitexGeo/*
 !LitexGeo/.gitkeep
 !LitexGeo/README.md
-!LitexGeo/LeanGeoCore/
-LitexGeo/LeanGeoCore/*
-!LitexGeo/LeanGeoCore/.gitkeep
 
 LeanGeo/*
 !LeanGeo/.gitkeep
