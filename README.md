@@ -1,53 +1,109 @@
-# Litex & Lean Auto-Build Experiment Systems
+# Litex vs. Lean: AI-Driven Geometry Library Construction
 
-This repository contains two AI-driven geometry library auto-build experiment systems: **LitexGeo** and **LeanGeo**.
+This repository contains two AI-driven systems for automatically constructing geometry libraries using large language models (LLMs):
 
-## 📊 Experiment Overview
+- **LitexGeo** — geometry library construction using Litex.
+- **LeanGeo** — geometry library construction using Lean 4.
 
-Both systems aim to automatically generate geometry library definitions and theorems through AI, with real-time verification by their respective compilers.
+Both systems generate definitions and mathematical theorems with AI and use their respective verification systems to check the generated content.
 
-### Experiment Tasks
+The central experiment evaluates how effectively AI can construct a mathematical library in each language, measuring **verified task completion, development time, and token consumption**.
 
-| Type | Task Description | Count |
-|------|-----------------|-------|
-| **Definition** | Define geometric basic functions and predicates | 39 |
-| **Theorem** | Prove geometric theorems | 165 |
+## Experiment Results
 
-**Definition Task Examples**:
-- Define vector operations (vec, dot, det)
-- Define distance and angle functions
-- Define geometric objects (line, circle, triangle)
-- Define geometric predicates (parallel, perpendicular, collinear, etc.)
+### Theorem Generation
 
-**Theorem Task Examples**:
-- Vector operation properties (commutativity, distributivity)
-- Geometric relation theorems (triangle angle sum, Pythagorean theorem)
-- Point, line, circle position relationship theorems
+The following results compare the two systems on 165 geometry theorem tasks.
 
-## 🎯 Experiment Results
+| Metric | Litex | Lean | Comparison |
+|---|---:|---:|---|
+| Theorem tasks | 165 | 165 | Same task set |
+| Successful tasks | 150 | 115 | — |
+| Success rate | 90.8% | 70.0% | Litex +20.8 percentage points |
+| Total time | 280.8 min | 638.9 min | Litex 2.28× faster |
+| Token consumption | 11.5M | 10.5M | Litex uses 9.5% more tokens |
 
-### Litex System
+| Key finding | Result |
+|---|---|
+| Higher theorem success rate | Litex: 90.8% vs. Lean: 70.0% |
+| Shorter total execution time | Litex: 280.8 min vs. Lean: 638.9 min |
+| Lower token consumption | Lean: 10.5M vs. Litex: 11.5M |
 
-#### Definition Experiment
+Under this experimental setup, Litex achieved a higher theorem-task success rate and shorter total execution time, while consuming more tokens.
 
-**Litex Code Example**:
+These results are specific to the tested task set, prompts, libraries, models, and execution environments. They do not establish that Litex is universally superior to Lean.
+
+## Experiment Tasks
+
+The experiment contains 204 tasks in total.
+
+| Task type | Description | Number of tasks |
+|---|---|---:|
+| Definitions | Define geometric functions, objects, and predicates | 39 |
+| Theorems | Prove geometric and algebraic properties | 165 |
+| **Total** | | **204** |
+
+### Definition tasks
+
+Examples include:
+
+- Vector operations: `vec`, `dot`, and `det`.
+- Distance and angle functions.
+- Geometric objects: lines, circles, and triangles.
+- Geometric predicates: parallelism, perpendicularity, and collinearity.
+
+Both systems reportedly achieved a 100% success rate on the 39 definition tasks. However, Litex took 37.8 minutes and consumed 0.56M tokens, compared with Lean's 10.3 minutes and 0.44M tokens. Since these results do not demonstrate an advantage for Litex, definition-task performance is not included in the headline comparison.
+
+### Theorem tasks
+
+Examples include:
+
+- Vector operation properties, such as commutativity and distributivity.
+- Triangle angle sums and the Pythagorean theorem.
+- Incidence and positional relationships among points, lines, and circles.
+
+## System Comparison
+
+### Language and proof style
+
+| Feature | Litex | Lean |
+|---|---|---|
+| Version | 0.9.116-beta | 4.35.0 |
+| Language paradigm | Declarative, mathematics-oriented | Functional, dependent type theory |
+| Typical proof style | Fact-oriented reasoning and equality chains | Tactics and term-based proofs |
+| Verification | Litex compiler/verifier | Lean elaboration and kernel checking |
+| Incremental workflow | Supported in the experiment | Supported in the experiment |
+
+### Library setup
+
+| Feature | Litex | Lean |
+|---|---|---|
+| Initial geometry library | Built from scratch | Built from scratch for this experiment |
+| Mathematical infrastructure | Manually defined in the experiment | Lean and Mathlib infrastructure |
+| Geometry definitions | Experiment-specific library | Experiment-specific library |
+| Environment setup | Download the Litex binary | Install Lean and build the project |
+
+The comparison concerns these particular experiment systems, not the full capabilities of either language or its entire ecosystem.
+
+### Illustrative Litex examples
+
+A squared-distance definition:
 
 ```litex
-# Define squared distance between two points
-have fn distance_sq(A, B cart(R, R)) R = 
-  let v = vec(A, B) in dot(v, v)
-
-# Define line (general form equation)
-have fn line(a, b, c R) set = 
-  {p cart(R, R) | a * p[1] + b * p[2] + c = 0}
+have fn distance_sq(A, B cart(R, R)) R =
+    let v = vec(A, B) in dot(v, v)
 ```
 
-#### Theorem Experiment
-
-**Litex Proof Example**:
+A line represented by its general-form equation:
 
 ```litex
-# Vector dot product commutativity
+have fn line(a, b, c R) set =
+    {p cart(R, R) | a * p[1] + b * p[2] + c = 0}
+```
+
+A dot-product commutativity theorem:
+
+```litex
 thm dot_comm(u, v cart(R, R)) : dot(u, v) = dot(v, u)
 proof:
   calc:
@@ -58,175 +114,55 @@ proof:
 qed
 ```
 
-## ⚖️ System Feature Comparison
+These snippets illustrate the intended mathematical presentation style. They are examples of the language, not independent evidence for the measured performance differences.
 
-### Compiler and Language
+## Quick Start
 
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Compiler | Litex 0.9.116-beta | Lean 4.35.0 |
-| Language Paradigm | Declarative, natural language style | Functional, dependent types |
-| Proof Style | calc chain reasoning | tactic proofs |
-
-**Litex Advantages**:
-- ✅ **Natural Language Style**: Syntax close to math textbooks, easy to understand
-- ✅ **Concise Proofs**: calc style is intuitive, suitable for geometric reasoning
-- ✅ **Rapid Prototyping**: No complex type annotations needed, quick verification
-
-### Verification Method
-
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Verification Mode | Session protocol | REPL (via lake env) |
-| Incremental Compilation | ✅ Supported | ✅ Supported |
-| Compilation Speed | Fast | Slow (first time requires loading Mathlib) |
-
-### Standard Library
-
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Standard Library | None (build from scratch) | Mathlib (~300MB) |
-| Real Number Operations | Manually defined | Ready-made (Real type) |
-| Geometry Library | Completely self-built | Partially available |
-
-### Development Experience
-
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Installation | Download binary and use | Need to install elan + download Mathlib |
-
-### Performance Comparison
-
-#### Definition Experiment (39 tasks)
-
-| Metric | Litex | Lean |
-|--------|-------|------|
-| Total Time | 37.8 min | 10.3 min |
-| Token Consumption | 0.56M | 0.44M |
-| Success Rate | 100% | 100% |
-
-#### Theorem Experiment (165 tasks)
-
-| Metric | Litex | Lean |
-|--------|-------|------|
-| Total Time | 280.8 min | 638.9 min |
-| Token Consumption | 11.5M | 10.5M |
-| Success Rate | 90.8% | 70% |
-
-### Overall Rating
-
-| Dimension | Litex | Lean |
-|-----------|-------|------|
-| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Rigor** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Learning Curve** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| **Compilation Speed** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Expressiveness** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-
----
-
-## 🚀 Quick Start
-
-### Litex System
+### Litex system
 
 ```bash
-# 1. Get the compiler
-# Download litex_0.9.116-beta from https://github.com/litexlang/litex/releases
-# Extract to LitexGeo/golitex/ directory
+# 1. Download the compiler from:
+# https://github.com/litexlang/litex/releases
+# Use version litex_0.9.116-beta.
 
-# 2. Configure API
+# 2. Configure the API
 cd litex_auto_build_system
 cp config/api_config.example.json config/api_config.json
-vim config/api_config.json  # Fill in API key
+vim config/api_config.json
 
-# 3. Run experiment (test mode: first 3 tasks)
+# 3. Run a small test
 bash scripts/run_all_experiments.sh --test
 
-# 4. Full run (all 204 tasks)
+# 4. Run all tasks
 bash scripts/run_all_experiments.sh
 ```
 
-### Lean System
+### Lean system
 
 ```bash
-# 1. Install Lean
-curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
-source ~/.zshrc
+# 1. Install Lean using elan
+curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh
 
-# 2. Build project (download Mathlib, first time takes 5-10 minutes)
+# 2. Build the Lean project and its dependencies
 cd LeanGeo
 lake build
 
-# 3. Configure API
+# 3. Configure the API
 cd ../lean_auto_build_system
 cp config/api_config.example.json config/api_config.json
-vim config/api_config.json  # Fill in API key
+vim config/api_config.json
 
-# 4. Run experiment (test mode: first 3 tasks)
+# 4. Run a small test
 bash scripts/run_all_experiments.sh --test
 
-# 5. Full run (all 204 tasks)
+# 5. Run all tasks
 bash scripts/run_all_experiments.sh
 ```
 
-## 📁 Directory Structure
+Configure the API key, base URL, and model in the corresponding `config/api_config.json` file before running either experiment.
 
-```
-auto-build/
-│
-├── README.md                          # This file
-│
-├── litex_auto_build_system/          # Litex experiment system
-│   ├── scripts/                      # Experiment scripts
-│   ├── config/                       # API configuration
-│   ├── database/                     # Seed library
-│   ├── README.md                     # Detailed documentation
-│   └── USAGE_GUIDE.md               # Usage guide
-│
-├── lean_auto_build_system/           # Lean experiment system
-│   ├── scripts/                      # Experiment scripts
-│   ├── config/                       # API configuration
-│   ├── prompts/                      # Syntax guide
-│   ├── README.md                     # Detailed documentation
-│   └── USAGE_GUIDE.md               # Usage guide
-│
-├── LitexGeo/                         # Litex compiler directory (obtain separately)
-│   └── README.md                     # Acquisition instructions
-│
-└── LeanGeo/                          # Lean project directory (build separately)
-    └── README.md                     # Build instructions
-```
+Example configuration:
 
-## ⚠️ After First Clone
-
-### 1. Get Litex Compiler (not included in repository)
-- Download from https://github.com/litexlang/litex/releases
-- Version: `litex_0.9.116-beta`
-- Place at: `LitexGeo/golitex/litex_0.9.116-beta_<platform>/litex`
-
-### 2. Install Lean Environment (not included in repository)
-```bash
-# Install Lean
-curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
-
-# Build project (download Mathlib)
-cd LeanGeo && lake build
-```
-
-### 3. Configure API Keys
-Both systems require:
-```bash
-# Enter corresponding system directory
-cd litex_auto_build_system  # or lean_auto_build_system
-
-# Copy configuration template
-cp config/api_config.example.json config/api_config.json
-
-# Edit configuration, fill in API key
-vim config/api_config.json
-```
-
-Configuration format:
 ```json
 {
   "api_key": "your-actual-api-key",
@@ -235,69 +171,100 @@ Configuration format:
 }
 ```
 
-## 📊 Experiment Output
+Use your actual provider-supported model identifier.
 
-After running, the following will be generated in each system's output directory:
+## Repository Structure
 
+```text
+auto-build/
+├── README.md
+├── litex_auto_build_system/
+│   ├── scripts/
+│   ├── config/
+│   ├── database/
+│   ├── README.md
+│   └── USAGE_GUIDE.md
+├── lean_auto_build_system/
+│   ├── scripts/
+│   ├── config/
+│   ├── prompts/
+│   ├── README.md
+│   └── USAGE_GUIDE.md
+├── LitexGeo/
+│   └── README.md
+└── LeanGeo/
+    └── README.md
 ```
+
+The Litex compiler binary is obtained separately. The Lean project and its dependencies are built separately.
+
+## Experiment Output
+
+Each experiment generates a timestamped output directory containing records such as:
+
+```text
 *_auto_validated_250tasks/
 ├── definitions_only/
 │   └── run_YYYYMMDD_HHMMSS/
-│       ├── experiment.log           # Complete run log
-│       ├── library_final.*          # Generated complete library
-│       ├── attempts.json            # All attempt records
-│       └── state.json               # Experiment state
-│
+│       ├── experiment.log
+│       ├── library_final.*
+│       ├── attempts.json
+│       └── state.json
 └── theorems_only/
     └── run_YYYYMMDD_HHMMSS/
         ├── experiment.log
         ├── library_final.*
         ├── attempts.json
-        ├── axioms_debt.md           # Axiom debt list
+        ├── axioms_debt.md
         └── state.json
 ```
 
-## 🎯 Run Options
+The output files record experiment execution, generated libraries, task attempts, experiment state, and (for theorem runs) the axiom-debt report.
 
-### Test Mode
+## Run Options
+
+Test mode:
+
 ```bash
 bash scripts/run_all_experiments.sh --test
-# Each experiment runs only the first 3 tasks, quick environment verification
 ```
 
-### Full Mode
+Runs the first three tasks for a quick environment check.
+
+Full mode:
+
 ```bash
 bash scripts/run_all_experiments.sh
-# Run all tasks (Definition: 39 + Theorem: 165)
 ```
 
-### Individual Run
-```bash
-# Run only Definition experiment
-python3 scripts/run_*_definitions.py --max-tasks 10
+Runs the full set of 39 definition tasks and 165 theorem tasks.
 
-# Run only Theorem experiment  
+Individual experiments:
+
+```bash
+python3 scripts/run_*_definitions.py --max-tasks 10
 python3 scripts/run_*_theorems.py --max-tasks 10
 ```
 
-## 📖 Documentation Index
+## Documentation
 
-- **[litex_auto_build_system/README.md](litex_auto_build_system/README.md)** - Litex system detailed documentation
-- **[litex_auto_build_system/USAGE_GUIDE.md](litex_auto_build_system/USAGE_GUIDE.md)** - Litex usage guide
-- **[lean_auto_build_system/README.md](lean_auto_build_system/README.md)** - Lean system detailed documentation
-- **[lean_auto_build_system/USAGE_GUIDE.md](lean_auto_build_system/USAGE_GUIDE.md)** - Lean usage guide
+- `litex_auto_build_system/README.md` — Litex experiment details.
+- `litex_auto_build_system/USAGE_GUIDE.md` — Litex usage guide.
+- `lean_auto_build_system/README.md` — Lean experiment details.
+- `lean_auto_build_system/USAGE_GUIDE.md` — Lean usage guide.
 
-## 🔗 Related Links
+## Related Links
 
-- **Litex**: https://github.com/litexlang/litex
-- **Lean**: https://leanprover.github.io/
-- **Mathlib**: https://leanprover-community.github.io/mathlib4_docs/
+- [Litex](https://github.com/litexlang/litex)
+- [Lean](https://leanprover.github.io/)
+- [Mathlib documentation](https://leanprover-community.github.io/mathlib4_docs/)
 
-## 📝 License
+## Reproducibility and Interpretation
 
-Please comply with the license requirements of the respective compilers and libraries.
+The reported results describe the observed performance of two AI-driven systems under a particular experimental configuration. A rigorous comparison should also document the model and version, prompts, retry limits, task ordering, library state, timeout policy, hardware, and the exact criterion for task success.
 
----
+In particular, successful compilation should not automatically be interpreted as mathematical correctness unless the verification process and its trusted assumptions are also specified.
 
-**Last Updated**: 2026-10-22  
-**System Versions**: Litex 0.9.116-beta, Lean 4.35.0
+**Last updated:** 2026-10-22
+
+**Experiment versions:** Litex 0.9.116-beta; Lean 4.35.0
