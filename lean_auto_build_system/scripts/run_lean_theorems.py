@@ -1404,11 +1404,11 @@ class LeanTheoremExperiment:
         if seed_lib_path and seed_lib_path.exists():
             seed_file = seed_lib_path
         else:
-            # prioritize use oflibrary_final.lean（definitions experiment output）
+            # prioritize use of library_final.lean (definitions experiment output)
             seed_file = Path(__file__).parent.parent.parent / "LeanGeo" / "library_final.lean"
             if not seed_file.exists():
-                # fallback to basic seed library
-                seed_file = Path(__file__).parent.parent.parent / "LeanGeo" / "LeanGeoCore" / "theorem_library_seed.lean"
+                # fallback to basic seed library from database
+                seed_file = Path(__file__).parent.parent / "database" / "theorem_library_seed.lean"
                 if not seed_file.exists():
                     raise FileNotFoundError(f"Seed library file does not exist: {seed_file}")
 
@@ -1767,14 +1767,24 @@ Please fix the proof based on error information. Only output the corrected Lean 
 
         self.total_time = time.time() - self.start_time
 
+        # Calculate total tokens
+        total_tokens = sum(attempt.total_tokens for attempt in self.attempts)
+
         # Output summary
         print(f"\n{'='*60}")
-        print("Experiment Summary")
+        print("Experiment Completed Summary")
         print(f"{'='*60}")
-        print(f"Total tasks: {len(tasks_to_run)}")
-        print(f"✅ Succeeded: {success_count}")
-        print(f"❌ Failed: {len(tasks_to_run) - success_count}")
-        print(f"Total time: {self.total_time/60:.1f} minutes")
+        print(f"✅ Success: {success_count}/{len(tasks_to_run)} tasks")
+        print(f"❌ Failed: {len(tasks_to_run) - success_count}/{len(tasks_to_run)} tasks")
+        print()
+        if success_count > 0:
+            completed_ids = [task.id for task in tasks_to_run if task.id in self.state["completed_tasks"]][:success_count]
+            if completed_ids:
+                print(f"Successful tasks: {', '.join(completed_ids)}")
+                print()
+        print(f"⏱️  Total time: {self.total_time/60:.1f} minutes")
+        print(f"🔢 Total tokens: {total_tokens}")
+        print(f"{'='*60}")
 
         # Count sorry and axiom usage
         sorry_count = 0
@@ -1786,11 +1796,16 @@ Please fix the proof based on error information. Only output the corrected Lean 
                 axiom_count += 1
 
         if sorry_count > 0 or axiom_count > 0:
+            print()
             print(f"🧾 Incomplete proof statistics:")
             if sorry_count > 0:
                 print(f"   - sorry placeholders: {sorry_count}")
             if axiom_count > 0:
                 print(f"   - axiom declarations: {axiom_count}")
+
+        print()
+        print(f"📦 Exported session complete library: {self.output_dir / 'library_final.lean'}")
+        print(f"🧾 axiom debt list: {self.output_dir / 'axioms_debt.md'}（{len(self.state['axiom_debt'])} items)")
 
         self.save_library()
 

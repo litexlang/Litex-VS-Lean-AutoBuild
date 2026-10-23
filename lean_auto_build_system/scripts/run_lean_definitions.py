@@ -394,8 +394,8 @@ class LeanExperimentWithValidation:
         self.log_file = self.output_dir / "experiment.log"
         self.init_log()
 
-        # load Lean seed library (from LeanGeo project)
-        seed_file = Path(__file__).parent.parent.parent / "LeanGeo" / "LeanGeoCore" / "definition_library_seed.lean"
+        # load Lean seed library (from database directory)
+        seed_file = Path(__file__).parent.parent / "database" / "definition_library_seed.lean"
         if not seed_file.exists():
             raise FileNotFoundError(f"seed library file does not exist: {seed_file}")
 
@@ -741,15 +741,26 @@ please fix your code based on error information。only output corrected Lean cod
 
         self.total_time = time.time() - self.start_time
 
+        # Calculate total tokens
+        total_tokens = sum(attempt.total_tokens for attempt in self.attempts)
+
         # output summary
         print(f"\n{'='*60}")
-        print("experiment completion summary")
+        print("Experiment Completed Summary")
         print(f"{'='*60}")
-        print(f"total tasks: {len(tasks_to_run)}")
-        print(f"success: {success_count}")
-        print(f"failed: {len(tasks_to_run) - success_count}")
-        print(f"Total time: {self.total_time/60:.1f} minutes")
-        print(f"Axiom debt: {len(self.state['axiom_debt'])} items")
+        print(f"✅ Success: {success_count}/{len(tasks_to_run)} tasks")
+        print(f"❌ Failed: {len(tasks_to_run) - success_count}/{len(tasks_to_run)} tasks")
+        print()
+        if success_count > 0:
+            completed_ids = [task.id for task in tasks_to_run[:success_count]]
+            print(f"Successful tasks: {', '.join(completed_ids)}")
+            print()
+        print(f"⏱️  Total time: {self.total_time/60:.1f} minutes")
+        print(f"🔢 Total tokens: {total_tokens}")
+        print(f"{'='*60}")
+        print()
+        print(f"📦 Exported session complete library: {self.output_dir / 'library_final.lean'}")
+        print(f"🧾 axiom debt list: {self.output_dir / 'axioms_debt.md'}（{len(self.state['axiom_debt'])} items)")
 
         self.save_library()
 
