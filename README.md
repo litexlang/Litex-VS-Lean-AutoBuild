@@ -8,23 +8,65 @@ Both systems aim to automatically generate geometry library definitions and theo
 
 ### Experiment Tasks
 
-| Type | Task Description | Count |
-|------|-----------------|-------|
-| **Definition** | Define geometric basic functions and predicates | 39 |
-| **Theorem** | Prove geometric theorems | 165 |
+| Type           | Task Description                                | Count |
+| -------------- | ----------------------------------------------- | ----- |
+| **Definition** | Define geometric basic functions and predicates | 39    |
+| **Theorem**    | Prove geometric theorems                        | 165   |
 
 **Definition Task Examples**:
+
 - Define vector operations (vec, dot, det)
 - Define distance and angle functions
 - Define geometric objects (line, circle, triangle)
 - Define geometric predicates (parallel, perpendicular, collinear, etc.)
 
 **Theorem Task Examples**:
+
 - Vector operation properties (commutativity, distributivity)
 - Geometric relation theorems (triangle angle sum, Pythagorean theorem)
 - Point, line, circle position relationship theorems
 
 ## 🎯 Experiment Results
+
+### Performance Comparison Tables
+
+#### Definition Experiment (39 tasks)
+
+| System    | Success Rate     | Total Time  | Total Tokens | Avg Time/Task | Avg Tokens/Task |
+| --------- | ---------------- | ----------- | ------------ | ------------- | --------------- |
+| **Litex** | **100%** (39/39) | **1.0 min** | 542,375      | 1.5s          | 13,907          |
+| **Lean**  | **100%** (39/39) | 8.2 min     | 210,129      | 12.6s         | 5,388           |
+
+**Key Findings**:
+
+- ✅ Both systems achieved 100% success rate
+- ⚡ **Litex is 8.2× faster** than Lean
+- 🔢 Litex consumed 2.6× more tokens than Lean
+- 📊 Lean is more token-efficient per task
+
+#### Theorem Experiment (165 tasks)
+
+| System    | Success Rate        | Total Time   | Total Tokens | Avg Time/Task | Avg Tokens/Task |
+| --------- | ------------------- | ------------ | ------------ | ------------- | --------------- |
+| **Litex** | **100%** (165/165)  | **14.3 min** | 18,546,452   | 5.2s          | 112,403         |
+| **Lean**  | **99.4%** (164/165) | 177.5 min    | 3,150,308    | 64.5s         | 19,093          |
+
+**Key Findings**:
+
+- ✅ Litex achieved 100% success vs Lean's 99.4%
+- ⚡ **Litex is 12.4× faster** than Lean
+- 🔢 Litex consumed 5.9× more tokens than Lean
+- 📊 Lean is significantly more token-efficient
+- 🚀 Litex shows better scalability on complex theorem proving
+
+### Overall Summary
+
+| Metric               | Litex Advantage                    | Lean Advantage           |
+| -------------------- | ---------------------------------- | ------------------------ |
+| **Success Rate**     | Higher (100% vs 99.4% on theorems) | -                        |
+| **Speed**            | **8-12× faster**                   | -                        |
+| **Token Efficiency** | -                                  | **3-6× more efficient**  |
+| **Reliability**      | No failed tasks                    | 1 failed task (theorems) |
 
 ### Litex System
 
@@ -62,66 +104,67 @@ qed
 
 ### Compiler and Language
 
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Compiler | Litex 0.9.116-beta | Lean 4.35.0 |
+| Feature           | Litex                               | Lean                        |
+| ----------------- | ----------------------------------- | --------------------------- |
+| Compiler          | Litex 0.9.116-beta                  | Lean 4.35.0                 |
 | Language Paradigm | Declarative, natural language style | Functional, dependent types |
-| Proof Style | calc chain reasoning | tactic proofs |
+| Proof Style       | calc chain reasoning                | tactic proofs               |
 
 **Litex Advantages**:
+
 - ✅ **Natural Language Style**: Syntax close to math textbooks, easy to understand
 - ✅ **Concise Proofs**: calc style is intuitive, suitable for geometric reasoning
 - ✅ **Rapid Prototyping**: No complex type annotations needed, quick verification
 
 ### Verification Method
 
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Verification Mode | Session protocol | REPL (via lake env) |
-| Incremental Compilation | ✅ Supported | ✅ Supported |
-| Compilation Speed | Fast | Slow (first time requires loading Mathlib) |
+| Feature                 | Litex            | Lean                                       |
+| ----------------------- | ---------------- | ------------------------------------------ |
+| Verification Mode       | Session protocol | REPL (via lake env)                        |
+| Incremental Compilation | ✅ Supported      | ✅ Supported                                |
+| Compilation Speed       | Fast             | Slow (first time requires loading Mathlib) |
 
 ### Standard Library
 
-| Feature | Litex | Lean |
-|---------|-------|------|
-| Standard Library | None (build from scratch) | Mathlib (~300MB) |
-| Real Number Operations | Manually defined | Ready-made (Real type) |
-| Geometry Library | Completely self-built | Partially available |
+| Feature                | Litex                     | Lean                   |
+| ---------------------- | ------------------------- | ---------------------- |
+| Standard Library       | None (build from scratch) | Mathlib (~300MB)       |
+| Real Number Operations | Manually defined          | Ready-made (Real type) |
+| Geometry Library       | Completely self-built     | Partially available    |
 
 ### Development Experience
 
-| Feature | Litex | Lean |
-|---------|-------|------|
+| Feature      | Litex                   | Lean                                    |
+| ------------ | ----------------------- | --------------------------------------- |
 | Installation | Download binary and use | Need to install elan + download Mathlib |
 
 ### Performance Comparison
 
 #### Definition Experiment (39 tasks)
 
-| Metric | Litex | Lean |
-|--------|-------|------|
-| Total Time | 37.8 min | 10.3 min |
-| Token Consumption | 0.56M | 0.44M |
-| Success Rate | 100% | 100% |
+| Metric            | Litex    | Lean     |
+| ----------------- | -------- | -------- |
+| Total Time        | 37.8 min | 10.3 min |
+| Token Consumption | 0.56M    | 0.44M    |
+| Success Rate      | 100%     | 100%     |
 
 #### Theorem Experiment (165 tasks)
 
-| Metric | Litex | Lean |
-|--------|-------|------|
-| Total Time | 280.8 min | 638.9 min |
-| Token Consumption | 11.5M | 10.5M |
-| Success Rate | 90.8% | 70% |
+| Metric            | Litex     | Lean      |
+| ----------------- | --------- | --------- |
+| Total Time        | 280.8 min | 638.9 min |
+| Token Consumption | 11.5M     | 10.5M     |
+| Success Rate      | 90.8%     | 70%       |
 
 ### Overall Rating
 
-| Dimension | Litex | Lean |
-|-----------|-------|------|
-| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Rigor** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Learning Curve** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| **Compilation Speed** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Expressiveness** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Dimension             | Litex | Lean  |
+| --------------------- | ----- | ----- |
+| **Ease of Use**       | ⭐⭐⭐⭐⭐ | ⭐⭐⭐   |
+| **Rigor**             | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Learning Curve**    | ⭐⭐⭐⭐⭐ | ⭐⭐    |
+| **Compilation Speed** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐   |
+| **Expressiveness**    | ⭐⭐⭐⭐⭐ | ⭐⭐⭐   |
 
 ---
 
@@ -200,11 +243,13 @@ auto-build/
 ## ⚠️ After First Clone
 
 ### 1. Get Litex Compiler (not included in repository)
+
 - Download from https://github.com/litexlang/litex/releases
 - Version: `litex_0.9.116-beta`
 - Place at: `LitexGeo/golitex/litex_0.9.116-beta_<platform>/litex`
 
 ### 2. Install Lean Environment (not included in repository)
+
 ```bash
 # Install Lean
 curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
@@ -214,7 +259,9 @@ cd LeanGeo && lake build
 ```
 
 ### 3. Configure API Keys
+
 Both systems require:
+
 ```bash
 # Enter corresponding system directory
 cd litex_auto_build_system  # or lean_auto_build_system
@@ -227,6 +274,7 @@ vim config/api_config.json
 ```
 
 Configuration format:
+
 ```json
 {
   "api_key": "your-actual-api-key",
@@ -260,18 +308,21 @@ After running, the following will be generated in each system's output directory
 ## 🎯 Run Options
 
 ### Test Mode
+
 ```bash
 bash scripts/run_all_experiments.sh --test
 # Each experiment runs only the first 3 tasks, quick environment verification
 ```
 
 ### Full Mode
+
 ```bash
 bash scripts/run_all_experiments.sh
 # Run all tasks (Definition: 39 + Theorem: 165)
 ```
 
 ### Individual Run
+
 ```bash
 # Run only Definition experiment
 python3 scripts/run_*_definitions.py --max-tasks 10
